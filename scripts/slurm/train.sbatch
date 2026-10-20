@@ -7,6 +7,8 @@
 #SBATCH --qos=normal
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
+# L40S 只在 TC2N07、TC2N08 上（GRES 未标显卡型号，无法用 --gres=gpu:l40s 指定），排除其余节点
+#SBATCH --exclude=TC2N0[1-6]
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=30G
 #SBATCH --time=05:55:00

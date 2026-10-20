@@ -1,20 +1,22 @@
 """把规范格式转成 LLaMA-Factory 的 Alpaca 格式，并写出 dataset_info.json。
 
-训练配置里用 dataset_dir=<out-dir>，dataset=ecom_query_train / ecom_query_val。
+训练配置里用 dataset_dir=<out-dir>，dataset=<prefix>_train / <prefix>_val。
+每条样本的 instruction 由其 task 决定（见 schema.INSTRUCTIONS）。
 """
 import argparse
 import json
 from pathlib import Path
 
 from ecomq.data.io import read_jsonl
-from ecomq.schema import INSTRUCTION, format_input, format_output
+from ecomq.schema import format_input, format_output, instruction_for, task_of
 
 
 def convert(rec: dict) -> dict:
+    task = task_of(rec)
     return {
-        "instruction": INSTRUCTION,
+        "instruction": instruction_for(task),
         "input": format_input(rec["query"], rec.get("title")),
-        "output": format_output(rec["label"]),
+        "output": format_output(rec["label"], task),
     }
 
 

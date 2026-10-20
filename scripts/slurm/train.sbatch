@@ -1,6 +1,7 @@
 #!/bin/bash
 # CCDS GPU Cluster TC2（SLURM）训练作业。提交前先 mkdir -p logs，否则日志文件无法创建。
 #   sbatch --export=ALL,CONFIG=configs/sft/smoke_qlora.yaml,MODEL=Qwen2.5-7B-Instruct,RUN=smoke scripts/slurm/train.sbatch
+# 换数据集：加 DATASET_DIR=<含 dataset_info.json 的目录>，配置里的 dataset 名要与之对应。
 # 6 小时到点后，用同样的命令（相同 RUN）重新提交即可从最新 checkpoint 续训。
 # 资源数值需 <= 你的 QoS 上限，请用 mytcinfo 确认；超限的作业会一直 PENDING。
 #SBATCH --partition=MGPU-TC2
@@ -50,5 +51,5 @@ fi
 
 llamafactory-cli train "$CONFIG" \
   model_name_or_path="$MODEL_ROOT/$MODEL" \
-  dataset_dir="$DATA_ROOT/llamafactory" \
+  dataset_dir="${DATASET_DIR:-$DATA_ROOT/llamafactory}" \
   output_dir="$OUTPUT_ROOT/$RUN"

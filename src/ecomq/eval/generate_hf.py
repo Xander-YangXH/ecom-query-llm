@@ -9,7 +9,7 @@
 import argparse
 
 from ecomq.data.io import read_jsonl, write_jsonl
-from ecomq.schema import build_user_prompt
+from ecomq.schema import build_user_prompt, task_of
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
     recs = list(read_jsonl(args.test))
     prompts = [
         tok.apply_chat_template(
-            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"))}],
+            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), task_of(r))}],
             tokenize=False,
             add_generation_prompt=True,
         )

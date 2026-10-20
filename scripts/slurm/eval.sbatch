@@ -2,6 +2,8 @@
 # CCDS（SLURM）评测作业：用 transformers + peft 生成，再算指标。
 #   sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=smoke,LORA=1 scripts/slurm/eval.sbatch
 # LORA=1 表示加载 $OUTPUT_ROOT/$RUN 作为适配器；不设则评测基座。资源数值需 <= QoS 上限。
+# TEST=<测试集 jsonl>（默认 $DATA_ROOT/splits/test.jsonl）；NAME=<结果名>（默认 RUN，4bit 时加 -4bit 后缀）
+# BATCH_SIZE、MAX_NEW_TOKENS 可调；relevance 这类短输出把 MAX_NEW_TOKENS 设小能显著提速。
 # LOAD_4BIT=1 表示基座按 4bit 加载（与 QLoRA 训练时一致），结果文件名带 -4bit 后缀。
 #SBATCH --partition=MGPU-TC2
 #SBATCH --qos=normal
@@ -31,7 +33,8 @@ if [ "${OFFLINE:-0}" = "1" ]; then
   export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 fi
 
-NAME="$RUN${LOAD_4BIT:+-4bit}"
+NAME="${NAME:-$RUN}${LOAD_4BIT:+-4bit}"
+TEST="${TEST:-$DATA_ROOT/splits/test.jsonl}"
 PRED="$OUTPUT_ROOT/preds/$NAME.jsonl"
 LORA_ARG=()
 [ -n "${LORA:-}" ] && LORA_ARG=(--lora "$OUTPUT_ROOT/$RUN")
@@ -39,7 +42,8 @@ LORA_ARG=()
 
 python -m ecomq.eval.generate_hf \
   --model "$MODEL_ROOT/$MODEL" "${LORA_ARG[@]}" \
-  --test "$DATA_ROOT/splits/test.jsonl" --output "$PRED"
+  --test "$TEST" --output "$PRED" \
+  --batch-size "${BATCH_SIZE:-8}" --max-new-tokens "${MAX_NEW_TOKENS:-256}"
 
-python -m ecomq.eval.score --test "$DATA_ROOT/splits/test.jsonl" --preds "$PRED" \
+python -m ecomq.eval.score --test "$TEST" --preds "$PRED" \
   --output "reports/$NAME.json"

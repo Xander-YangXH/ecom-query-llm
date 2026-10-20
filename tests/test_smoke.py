@@ -3,7 +3,7 @@ import json
 from ecomq.data.make_smoke import expand
 from ecomq.data.io import read_jsonl
 from ecomq.data.to_alpaca import convert, export
-from ecomq.schema import build_user_prompt
+from ecomq.schema import build_user_prompt, task_of
 
 SAMPLE = "data_sample/seed_sample.jsonl"
 
@@ -19,7 +19,7 @@ def test_inference_prompt_matches_training_prompt():
     """LLaMA-Factory 把 instruction 与 input 用换行拼成同一个 user 消息；推理必须一致。"""
     for rec in read_jsonl(SAMPLE):
         row = convert(rec)
-        assert build_user_prompt(rec["query"], rec.get("title")) == row["instruction"] + "\n" + row["input"]
+        assert build_user_prompt(rec["query"], rec.get("title"), task_of(rec)) == row["instruction"] + "\n" + row["input"]
 
 
 def test_export_writes_dataset_info(tmp_path):

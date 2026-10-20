@@ -1,5 +1,5 @@
 from ecomq.data.io import read_jsonl
-from ecomq.schema import format_output, parse_output, validate_record
+from ecomq.schema import ESCI_TO_RELEVANCE, RELEVANCE, format_output, parse_output, validate_record
 
 SAMPLE = "data_sample/seed_sample.jsonl"
 
@@ -10,37 +10,57 @@ def test_sample_records_are_valid():
 
 
 def _rec(**label_overrides):
-    label = {"intent": "商品搜索", "attributes": {"品牌": "耐克"}, "rewrite": "耐克", "relevance": None}
+    label = {"intent": "product_search", "attributes": {"brand": "nike"}, "rewrite": "nike", "relevance": None}
     label.update(label_overrides)
-    return {"query": "耐克跑鞋", "label": label}
+    return {"task": "full", "query": "nike running shoes", "label": label}
 
 
 def test_rejects_bad_intent():
-    assert validate_record(_rec(intent="乱写"))
+    assert validate_record(_rec(intent="buy_now"))
 
 
 def test_rejects_hallucinated_attribute_value():
-    assert validate_record(_rec(attributes={"品牌": "阿迪达斯"}))
+    assert validate_record(_rec(attributes={"brand": "adidas"}))
+
+
+def test_attribute_match_is_case_insensitive():
+    assert validate_record(_rec(attributes={"brand": "Nike"})) == []
 
 
 def test_rejects_unknown_attribute_key():
-    assert validate_record(_rec(attributes={"产地": "耐克"}))
+    assert validate_record(_rec(attributes={"origin": "nike"}))
 
 
-def test_relevance_requires_title():
-    assert validate_record(_rec(relevance="精确"))
-    rec = _rec(relevance="精确")
-    rec["title"] = "耐克 跑鞋"
+def test_relevance_requires_title_in_full_task():
+    assert validate_record(_rec(relevance="exact"))
+    rec = _rec(relevance="exact")
+    rec["title"] = "Nike Running Shoes"
     assert validate_record(rec) == []
 
 
-def test_output_roundtrip():
-    label = {"intent": "售后", "attributes": {}, "rewrite": "退货", "relevance": None}
-    assert parse_output(format_output(label)) == label
+def test_relevance_task_validation():
+    ok = {"task": "relevance", "query": "hdmi cable", "title": "HDMI Cable 6ft", "label": {"relevance": "substitute"}}
+    assert validate_record(ok) == []
+    assert validate_record({**ok, "label": {"relevance": "partial"}})
+    assert validate_record({**ok, "title": None})
+    assert validate_record({**ok, "task": "unknown"})
+
+
+def test_esci_mapping_covers_label_set():
+    assert sorted(ESCI_TO_RELEVANCE.values()) == sorted(RELEVANCE)
+
+
+def test_output_roundtrip_per_task():
+    full = {"intent": "after_sales", "attributes": {}, "rewrite": "return", "relevance": None}
+    assert parse_output(format_output(full, "full"), "full") == full
+    rel = {"relevance": "complement"}
+    assert format_output(rel, "relevance") == '{"relevance": "complement"}'
+    assert parse_output(format_output(rel, "relevance"), "relevance") == rel
 
 
 def test_parse_output_handles_code_fence_and_garbage():
-    label = {"intent": "售后", "attributes": {}, "rewrite": "退货", "relevance": None}
-    assert parse_output("```json\n" + format_output(label) + "\n```") == label
-    assert parse_output("不是 json") is None
-    assert parse_output('{"intent": "售后"}') is None
+    rel = {"relevance": "exact"}
+    assert parse_output("```json\n" + format_output(rel, "relevance") + "\n```", "relevance") == rel
+    assert parse_output("not json", "relevance") is None
+    assert parse_output('{"intent": "inquiry"}', "full") is None
+    assert parse_output('{"label": "exact"}', "relevance") is None

@@ -1,17 +1,17 @@
-"""读取 test.jsonl 与 predictions.jsonl，输出指标 JSON（体积很小，可以提交进 git 的 reports/）。"""
+"""读取 test.jsonl 与 predictions.jsonl，按任务输出指标 JSON（体积很小，可以提交进 git 的 reports/）。"""
 import argparse
 import json
 from pathlib import Path
 
 from ecomq.data.io import read_jsonl
-from ecomq.eval.metrics import evaluate, evaluate_by_difficulty
+from ecomq.eval.metrics import evaluate_records
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--test", required=True)
     ap.add_argument("--preds", required=True)
-    ap.add_argument("--output", help="写出指标 JSON，例如 reports/qwen7b-lora-r16.json")
+    ap.add_argument("--output", help="写出指标 JSON，例如 reports/e1-qlora-4bit.json")
     args = ap.parse_args()
 
     recs = list(read_jsonl(args.test))
@@ -21,10 +21,7 @@ def main():
         raise SystemExit(f"{len(missing)} 条测试样本没有预测，例如 {missing[:3]}")
     outputs = [pred_by_id[r["id"]] for r in recs]
 
-    report = {
-        "overall": evaluate([r["label"] for r in recs], outputs),
-        "by_difficulty": evaluate_by_difficulty(recs, outputs),
-    }
+    report = evaluate_records(recs, outputs)
     text = json.dumps(report, ensure_ascii=False, indent=2)
     print(text)
     if args.output:

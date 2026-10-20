@@ -12,18 +12,20 @@ import random
 from ecomq.data.io import read_jsonl
 from ecomq.schema import ATTR_KEYS, INTENTS, RELEVANCE
 
-STYLES = ["简短关键词", "口语化", "含错别字或拼音", "多属性组合", "带否定条件", "带价格区间"]
+STYLES = ["short keywords", "conversational", "with typos or abbreviations", "multiple attributes",
+          "with a negative constraint", "with a price range"]
 
-PROMPT = """你在为电商搜索 Query 理解任务生成训练数据。
-给定商品标题：{title}（类目：{category}）。
-请生成 {n} 条用户 query，风格从以下选择并尽量多样：{styles}。
-对每条 query 输出一个 JSON 对象，字段：
-- query: 用户输入
-- intent: 取值 {intents}
-- attributes: 键只能取 {attr_keys}；值必须是 query 或标题中出现过的原文片段
-- rewrite: 规范化的检索词
-- relevance: 该 query 与上述商品标题的关系，取值 {relevance}
-只输出 JSON 数组，不要任何解释。"""
+PROMPT = """You are generating training data for an e-commerce query understanding model.
+Product title: {title} (category: {category}).
+Write {n} realistic English search queries a shopper might type when looking for this or similar products.
+Vary the style using: {styles}.
+For each query output a JSON object with:
+- query: the user query
+- intent: one of {intents}
+- attributes: keys only from [{attr_keys}]; every value must be copied verbatim from the query
+- rewrite: a normalized search string
+- relevance: how this product relates to the query, one of [{relevance}]
+Output a JSON array only, no explanation."""
 
 
 def build_prompt(seed: dict, n: int = 4) -> str:
@@ -31,10 +33,10 @@ def build_prompt(seed: dict, n: int = 4) -> str:
         title=seed["title"],
         category=seed.get("category", ""),
         n=n,
-        styles="、".join(random.sample(STYLES, k=min(3, len(STYLES)))),
-        intents="/".join(INTENTS),
-        attr_keys="、".join(ATTR_KEYS),
-        relevance="/".join(RELEVANCE),
+        styles=", ".join(random.sample(STYLES, k=min(3, len(STYLES)))),
+        intents=", ".join(INTENTS),
+        attr_keys=", ".join(ATTR_KEYS),
+        relevance=", ".join(RELEVANCE),
     )
 
 
@@ -43,6 +45,7 @@ def to_records(seed: dict, items: list[dict], idx: int) -> list[dict]:
     out = []
     for j, it in enumerate(items):
         base = {
+            "task": "full",
             "query": it.get("query", ""),
             "meta": {"source": "synth", "seed_idx": idx},
             "group": seed["title"],

@@ -23,6 +23,7 @@
 | P9 | S6 | `pip freeze` 把含用户名的本地路径写进了锁定文件并已推送 | 改用 `pip freeze --exclude-editable`；历史提交中的残留待决定是否清理 |
 | P10 | S7 | 一次性提交整条依赖链被拒：`QOSMaxSubmitJobPerUserLimit` | 每人最多同时提交 2 个作业；改用头节点上的顺序调度脚本 `chain_e1.sh` |
 | P11 | S7 | 调度脚本挂在本机 SSH 会话里，断开后可能被 SIGPIPE 终止；`pkill -f` 误杀了执行它的 SSH 会话 | 改用 `setsid nohup` 在服务器上独立运行、直接写日志；`pkill` 的匹配模式不要包含命令行里出现的文本 |
+| P12 | S9 | `sbatch --export=...,PREP_ARGS="... complement=0.10,irrelevant=0.20"` 会把值里的逗号当成变量分隔符 | 含逗号的值改为通过环境变量传递，依靠 `--export=ALL` 继承 |
 
 ---
 
@@ -420,3 +421,41 @@
 
 **小修复**
 - 调度日志的时间戳：原写法 `echo "$(date) ... $(wait_job)"` 中 `date` 在提交时就已求值，日志里看起来像评测作业“提交即完成”。已改为先等作业结束再取时间；调度顺序本身经 `sacct` 核实无误（三个作业依次运行）。
+
+
+---
+
+## S9 · E2 设计：训练轮数与类别重采样（2026-10-20）
+
+**为什么**
+- E1 暴露了两个问题：验证损失在 epoch≈1 最低、第 2 个 epoch 回升（过拟合）；irrelevant 召回 0.34、complement 召回 0.25（少数类学不好）。
+- 用户要求同时做“1 个 epoch + 选最优 checkpoint”和“提高 irrelevant、complement 的采样比例”。
+
+**设计：拆成两个对照实验，而不是一次改两个变量**
+
+| 实验 | 训练数据 | 训练设定 | 和谁比、回答什么 |
+|---|---|---|---|
+| E1（已完成） | 自然分布 | 2 epoch，用最后的适配器 | — |
+| E2a | 与 E1 完全相同 | 1 epoch，每 100 步评测，加载验证损失最低的 checkpoint | E2a vs E1：只改训练轮数与 checkpoint 选择的效果 |
+| E2b | 重采样（complement 10%、irrelevant 20%） | 与 E2a 完全相同 | E2b vs E2a：只改采样比例的效果 |
+
+如果一次同时改两个变量，即使分数提升了，也说不清是哪个改动起的作用；拆开只多花一次约 35 分钟的训练。
+
+**重采样怎么做**（`prepare_esci.py --rebalance complement=0.10,irrelevant=0.20`）
+- 只改 train，总量保持 20,000 条：从训练池中抽取**此前未使用过的真实样本**，把 complement 补到 10%、irrelevant 补到 20%；exact 与 substitute 按原有比例随机删减。
+- 不复制已有样本：复制只会让模型反复看同几条 complement，更容易过拟合；训练池里有约 2.9 万条 complement、12 万条 irrelevant 可用。
+- val/test 保持自然分布，并用同样的种子生成。调度脚本在训练前用 `cmp` 核对 E2b 的 val/test 与 E1 **逐字节一致**，不一致就停止，保证三组实验在同一测试集上比较。
+- 预期的代价：训练分布偏离测试分布（测试集 exact 占 62.6%），所以 E2b 的准确率可能下降，宏 F1 和少数类召回应当上升。这是预期内的取舍，以宏 F1 为主指标判断。
+
+**最优 checkpoint 怎么选**
+- `load_best_model_at_end: true` + `metric_for_best_model: eval_loss`：每 100 步在验证集上算一次损失并保存，训练结束时把损失最低的那个作为最终适配器。
+- 局限：选择依据是验证损失而不是宏 F1。损失对 exact 这样的多数类更敏感，不一定与宏 F1 同步；如果 E2 的结果显示两者不一致，再考虑用生成式评测在验证集上选 checkpoint。
+
+**调度**
+- `scripts/slurm/chain.sh`：通用的“数据准备 → 训练（超时自动续训）→ 评测”调度，取代只能跑 E1 的 `chain_e1.sh`。
+- `scripts/slurm/run_e2.sh`：先生成 E2b 数据并做一致性核对，再依次跑 E2a、E2b；用 `setsid nohup` 在头节点独立运行。
+
+**P12 · 参数里的逗号被 sbatch 拆开**
+- 现象：代码审查时发现，提交前修复。`--export=ALL,SKIP_INSPECT=1,PREP_ARGS="--rebalance complement=0.10,irrelevant=0.20"` 中，sbatch 用逗号分隔变量，`irrelevant=0.20` 会被当成一个新的环境变量，`PREP_ARGS` 被截断，数据会按错误的参数生成。
+- 解决：含逗号的值先 `export` 到环境里，`--export=ALL` 会继承当前环境；`--export=` 列表只放不含逗号的值。
+- 经验：`--export` 的值里不能有逗号；复杂参数一律走环境变量或写进文件。

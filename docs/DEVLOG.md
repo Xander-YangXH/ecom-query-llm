@@ -18,6 +18,7 @@
 | P4 | S5 | 模型只下载了 6 个文件，缺 `config.json` 和分词器 | 去掉 `hf download` 的多模式 `--include`，下载整个仓库 |
 | P5 | S5 | transformers 5.x 移除了 `overwrite_output_dir`，配置会解析失败 | 从所有配置删除该参数，依赖 LLaMA-Factory 默认续训 |
 | P6 | S5 | transformers 5.x 中 `torch_dtype` 已弃用 | 推理脚本改用 `dtype` |
+| P7 | S6 | 代码同步漏传 `src/ecomq/data/`，作业报 `No module named 'ecomq.data'` | 改为只同步 git 跟踪的文件，并在同步后抽查子包 |
 
 ---
 
@@ -198,3 +199,26 @@
 
 **遗留问题**
 - 冒烟训练与评测结果见 S6。
+
+---
+
+## S6 · 冒烟训练与评测（2026-10-20）
+
+**为什么**
+- 用最小的成本（400 条复制样本、1 个 epoch）把「数据生成 → 4bit 加载 → LoRA 训练 → 保存 → 推理 → 打分」整条链路在真实 GPU 上走一遍。冒烟的目的是验证流程，不看效果。
+
+**怎么做**
+- 训练：`sbatch --export=ALL,MAKE_SMOKE=1,CONFIG=configs/sft/smoke_qlora.yaml,MODEL=Qwen2.5-7B-Instruct,RUN=smoke scripts/slurm/train.sbatch`
+  - `MAKE_SMOKE=1` 让冒烟数据在计算节点上生成（头节点不允许运行计算代码）。
+- 评测：`sbatch --dependency=afterok:<训练作业号> ... scripts/slurm/eval.sbatch`
+  - 用 SLURM 依赖把评测接在训练成功之后自动运行，不用人工盯着；训练失败时评测作业会被取消。
+
+**P7 · 代码同步漏传 `src/ecomq/data/`**
+- 现象：第一次冒烟训练（作业 44742）4 秒就失败，报 `No module named 'ecomq.data'`；依赖它的评测作业 44743 随之被取消。
+- 原因：`remote.sh sync-code` 用了 `rsync --exclude 'data/'`，本意是排除仓库根目录的数据目录。但 rsync 的排除模式不带前导 `/` 时会匹配**任意层级**的同名目录，于是源码目录 `src/ecomq/data/` 也被排除了。本地单测能过，是因为本地文件是全的，问题只在同步这一环。
+- 解决：同步方式改为 `git ls-files | rsync --files-from=-`，只传 git 跟踪的文件。数据、`.env`、模型本来就不在 git 里，不再需要任何排除规则，从根上避免误伤。同步后再到远端抽查每个子包的 `__init__.py`。
+- 验证：重新同步后，`src/ecomq/data/` 下 7 个文件全部上传，抽查输出 `sync-check-ok`。
+- 经验：用排除规则维护“哪些不传”容易漏、也容易误伤；用 git 的跟踪列表定义“哪些要传”更可靠。代价是新文件必须先 `git add` 才会被同步。
+
+**效果**
+- 第二次提交：训练作业 44744，评测作业 44745（结果待补）。

@@ -14,12 +14,13 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 case "${1:-}" in
   sync-code)
-    # 不用 --delete：避免误删远端生成的 logs/、reports/；远端的 .env 也不会被覆盖
-    rsync -az --itemize-changes \
-      --exclude '.git/' --exclude '.env' --exclude '.venv/' --exclude '__pycache__/' \
-      --exclude '.pytest_cache/' --exclude 'build/' --exclude 'data/' --exclude 'models/' \
-      --exclude 'outputs/' --exclude 'saves/' --exclude 'logs/' --exclude 'reports/' \
-      "$ROOT/" "$HOST:$REMOTE_REPO/" ;;
+    # 只同步 git 跟踪的文件（新文件需先 git add）：数据、.env、模型本来就不在 git 里，不需要写排除规则。
+    # 早期版本用 --exclude 'data/'，会误伤任意层级的 data 目录（包括 src/ecomq/data），见 DEVLOG P7。
+    # 不用 --delete：避免误删远端作业生成的 logs/、reports/。
+    cd "$ROOT"
+    git ls-files -z | rsync -az --itemize-changes --from0 --files-from=- ./ "$HOST:$REMOTE_REPO/"
+    # 关键文件抽查：源码包的每个子包都要在远端存在
+    ssh "$HOST" "cd $REMOTE_REPO && for p in src/ecomq src/ecomq/data src/ecomq/eval; do test -f \$p/__init__.py || { echo \"MISSING \$p\"; exit 1; }; done; echo sync-check-ok" 2>/dev/null | tail -1 ;;
   pull)
     ssh "$HOST" "cd $REMOTE_REPO && git pull --ff-only" ;;
   put)

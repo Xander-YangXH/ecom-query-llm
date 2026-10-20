@@ -36,3 +36,20 @@ def test_to_record_is_valid_and_truncates_title():
     assert validate_record(rec) == []
     assert rec["task"] == "relevance" and rec["label"] == {"relevance": "substitute"}
     assert len(rec["title"]) <= 200
+
+
+def test_rebalance_hits_targets_and_keeps_size():
+    from ecomq.data.prepare_esci import parse_targets, rebalance
+
+    df = _df()
+    train, train_q = sample_queries(df, 10, 4, seed=1)
+    pool = df[~df["example_id"].isin(train["example_id"])]
+    targets = parse_targets("complement=0.25,irrelevant=0.25")
+    assert targets == {"C": 0.25, "I": 0.25}
+    out = rebalance(train, df, targets, seed=0)
+    assert len(out) == len(train)
+    shares = out["esci_label"].value_counts(normalize=True)
+    assert abs(shares["C"] - 0.25) < 0.03 and abs(shares["I"] - 0.25) < 0.03
+    assert out["example_id"].is_unique
+    added = set(out["example_id"]) - set(train["example_id"])
+    assert added <= set(pool["example_id"])  # 新增样本都是此前未使用的真实样本

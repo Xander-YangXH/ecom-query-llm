@@ -5,7 +5,9 @@
 - 按 query 分组抽样：先抽 query，再在每个 query 下随机取至多 per_query 个商品。
   这样同样的样本量覆盖更多不同的 query，而且同一 query 只会出现在一个集合里（不泄漏）。
 - val 从官方 train 中划出（与 train 的 query 不重叠）；test 从官方 test 中抽取。
-- 保留自然的标签分布（不做类别平衡），作为第一组实验的基线设定。
+- 默认保留自然的标签分布（E1 的基线设定）。
+- --rebalance complement=0.10,irrelevant=0.20（E2b）：只调整 train。总量不变，用训练池里新的真实样本
+  把指定类别补到目标比例，其余类别按原比例随机减少；val/test 保持自然分布且与不加该参数时完全相同。
 输出：
   <out-dir>/splits/{train,val,test}.jsonl   规范格式（task=relevance）
   <out-dir>/llamafactory/                   Alpaca 格式 + dataset_info.json（prefix=esci_rel）
@@ -33,6 +35,42 @@ def sample_queries(df, n_queries: int, per_query: int, seed: int, exclude: set |
     sub = df[df["query_id"].isin(chosen)]
     sub = sub.sample(frac=1.0, random_state=seed)  # 打乱后每组取前 per_query 行 = 组内随机抽样
     return sub.groupby("query_id", sort=False).head(per_query), chosen
+
+
+RELEVANCE_TO_ESCI = {v: k for k, v in ESCI_TO_RELEVANCE.items()}
+
+
+def parse_targets(spec: str) -> dict[str, float]:
+    """'complement=0.10,irrelevant=0.20' -> {'C': 0.10, 'I': 0.20}"""
+    out = {}
+    for part in filter(None, spec.split(",")):
+        name, share = part.split("=")
+        out[RELEVANCE_TO_ESCI[name.strip()]] = float(share)
+    assert 0 < sum(out.values()) < 1, "target shares must sum to (0, 1)"
+    return out
+
+
+def rebalance(train_df, pool, targets: dict[str, float], seed: int):
+    """把 train_df 中 targets 指定的类别补到目标比例（从 pool 中抽未使用过的真实样本），
+    再从其余类别里均匀随机删除同样多的行，使总量不变、其余类别之间的相对比例不变。"""
+    import pandas as pd
+
+    n = len(train_df)
+    counts = train_df["esci_label"].value_counts().to_dict()
+    used = set(train_df["example_id"])
+    extra = []
+    for lab, share in targets.items():
+        need = round(share * n) - counts.get(lab, 0)
+        if need <= 0:
+            continue
+        cand = pool[(pool["esci_label"] == lab) & ~pool["example_id"].isin(used)]
+        assert len(cand) >= need, f"pool has only {len(cand)} rows of {lab}, need {need}"
+        extra.append(cand.sample(n=need, random_state=seed))
+    add = pd.concat(extra) if extra else train_df.iloc[0:0]
+    keep_target = train_df[train_df["esci_label"].isin(targets)]
+    others = train_df[~train_df["esci_label"].isin(targets)]
+    others_kept = others.sample(n=len(others) - len(add), random_state=seed)
+    return pd.concat([keep_target, others_kept, add]).sample(frac=1.0, random_state=seed)
 
 
 def to_record(row) -> dict:
@@ -78,6 +116,7 @@ def main():
     ap.add_argument("--test-queries", type=int, default=600)
     ap.add_argument("--per-query", type=int, default=4)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--rebalance", default="", help="例如 complement=0.10,irrelevant=0.20；只作用于 train")
     args = ap.parse_args()
 
     raw, out = Path(args.raw_dir), Path(args.out_dir)
@@ -99,8 +138,12 @@ def main():
     train_df, train_q = sample_queries(train_pool, args.train_queries, args.per_query, args.seed + 1, exclude=val_q)
     test_df, _ = sample_queries(test_pool, args.test_queries, args.per_query, args.seed + 2)
     assert not (val_q & train_q), "val/train query overlap"
+    if args.rebalance:
+        targets = parse_targets(args.rebalance)
+        train_df = rebalance(train_df, train_pool[~train_pool["query_id"].isin(val_q)], targets, args.seed + 3)
 
     stats = {"source": "ESCI us large_version", "per_query": args.per_query, "seed": args.seed,
+             "rebalance": args.rebalance or None,
              "pool": {"train_rows": len(train_pool), "test_rows": len(test_pool),
                       "train_label_share": train_pool["esci_label"].value_counts(normalize=True).round(4).to_dict()}}
     for name, part in (("train", train_df), ("val", val_df), ("test", test_df)):

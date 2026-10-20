@@ -26,6 +26,8 @@ export PYTHONPATH=src
 START=$SECONDS
 python -m ecomq.data.prepare_esci ${PREP_ARGS:-}
 echo "prepare_esci: $((SECONDS - START))s"
-START=$SECONDS
-python -m ecomq.data.inspect_ecinstruct
-echo "inspect_ecinstruct: $((SECONDS - START))s"
+if [ "${SKIP_INSPECT:-0}" != "1" ]; then
+  START=$SECONDS
+  python -m ecomq.data.inspect_ecinstruct
+  echo "inspect_ecinstruct: $((SECONDS - START))s"
+fi

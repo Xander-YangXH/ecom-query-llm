@@ -22,6 +22,7 @@
 | P8 | S6 | QLoRA 适配器配 bf16 基座评测，边界样本判断翻转 | QLoRA 模型评测时用 `LOAD_4BIT=1`，与训练时的量化方式一致 |
 | P9 | S6 | `pip freeze` 把含用户名的本地路径写进了锁定文件并已推送 | 改用 `pip freeze --exclude-editable`；历史提交中的残留待决定是否清理 |
 | P10 | S7 | 一次性提交整条依赖链被拒：`QOSMaxSubmitJobPerUserLimit` | 每人最多同时提交 2 个作业；改用头节点上的顺序调度脚本 `chain_e1.sh` |
+| P11 | S7 | 调度脚本挂在本机 SSH 会话里，断开后可能被 SIGPIPE 终止；`pkill -f` 误杀了执行它的 SSH 会话 | 改用 `setsid nohup` 在服务器上独立运行、直接写日志；`pkill` 的匹配模式不要包含命令行里出现的文本 |
 
 ---
 
@@ -333,3 +334,26 @@
 - 共 263,562 行，10 个任务。
 - 与 E1 测试集（600 个 query）的重叠：ECInstruct 中由 ESCI 派生的三个任务，**train 部分重叠为 0**；val/test 部分各有 17–27 个 query 重叠。
 - 结论：ECInstruct 的 train 部分以后可以安全地混入训练；它的 val/test 不能当作与 E1 独立的测试集使用。
+
+
+**P11 · 调度脚本的运行方式**
+- 现象：最初在本机后台用 `ssh ... 'bash chain_e1.sh | tee -a log'` 启动调度。本机休眠或 SSH 断开时，服务器上的 `tee` 写已关闭的通道会收到 SIGPIPE 退出，调度脚本下一次输出时也会被 SIGPIPE 终止，后续评测就不会被提交。
+- 处理过程中又踩了一个坑：用 `pkill -f "chain_e1.sh"` 停旧进程时，执行这条命令的 SSH 会话自身的命令行里也包含 `chain_e1.sh`，于是把自己也杀了，命令没有输出（训练作业不受影响）。
+- 解决：
+  - 调度脚本改为 `setsid nohup bash scripts/slurm/chain_e1.sh >> logs/chain_e1.log 2>&1 < /dev/null &`，与 SSH 会话完全脱离（确认父进程为 1）。
+  - 新增 `TRAIN_JOB=<作业号>`：调度脚本重启时接管已提交的训练作业，避免重复训练。
+  - 本机只用短连接定期检查日志，连接断开不影响服务器上的调度。
+- 经验：长时间运行的东西不要依赖本机连接；`pkill -f` 前先用 `pgrep -a` 看清会匹配到哪些进程。
+
+**E1 基线：基座 zero-shot**（作业 44757，1 分 18 秒，2,400 条，bf16）
+
+| 指标 | 值 |
+|---|---|
+| 格式合法率 | 1.000 |
+| 准确率 | 0.526（低于“全猜 exact”的 0.626） |
+| 宏 F1 | 0.372 |
+| 各类 F1 | exact 0.706、substitute 0.328、complement 0.077、irrelevant 0.377 |
+| 预测分布 | exact 1079、substitute 559、irrelevant 576、complement 186（真实为 1503 / 576 / 246 / 75） |
+
+- 解读：基座能稳定输出合法 JSON，但判断标准明显偏严，大量 exact 被判成 irrelevant 或 complement。也就是说，基座缺的是对 ESCI 标注口径的理解，而不是格式能力，这正是监督微调要解决的问题。
+- 对比说明：官方基线（micro-F1 0.62 / macro-F1 0.23）是在完整测试集上算的，而这里是 600 个 query 的子集，两者只能作量级参考，不能直接比较。

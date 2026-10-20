@@ -7,7 +7,10 @@ set -a; source .env; set +a
 CFG=configs/sft/e2_relevance_qlora_1ep_best.yaml
 
 # E2b 数据：与 E1 同样的种子与抽样参数，只多一个 --rebalance
-J=$(sbatch --parsable --export=ALL,SKIP_INSPECT=1,PREP_ARGS="--out-dir $DATA_ROOT/e2_rebal --rebalance complement=0.10,irrelevant=0.20" scripts/slurm/prepare_data.sbatch)
+# PREP_ARGS 含逗号，不能放进 --export=（sbatch 用逗号分隔变量），改为通过环境变量继承（--export=ALL）
+export PREP_ARGS="--out-dir $DATA_ROOT/e2_rebal --rebalance complement=0.10,irrelevant=0.20"
+J=$(sbatch --parsable --export=ALL,SKIP_INSPECT=1 scripts/slurm/prepare_data.sbatch)
+unset PREP_ARGS
 while squeue -h -j "$J" 2>/dev/null | grep -q .; do sleep 30; done
 echo "$(date +%T) [e2b-data] job=$J state=$(sacct -j "$J" -X -n -o State | head -1 | tr -d ' ')"
 for part in val test; do

@@ -28,7 +28,8 @@ wait_job() {  # 等作业离开队列，打印最终状态
 if [ -n "${AFTER:-}" ]; then S=$(wait_job "$AFTER"); log "wait $AFTER -> $S"; fi
 
 if [ -n "${PREP_ARGS:-}" ]; then
-  J=$(sbatch --parsable --export=ALL,SKIP_INSPECT=1,PREP_ARGS="$PREP_ARGS" scripts/slurm/prepare_data.sbatch)
+  # PREP_ARGS 可能含逗号，靠 --export=ALL 从环境继承，不写进 --export= 列表
+  J=$(PREP_ARGS="$PREP_ARGS" sbatch --parsable --export=ALL,SKIP_INSPECT=1 scripts/slurm/prepare_data.sbatch)
   S=$(wait_job "$J"); log "prepare job=$J state=$S"
   [ "$S" = "COMPLETED" ] || { log "prepare failed, stop"; exit 1; }
 fi

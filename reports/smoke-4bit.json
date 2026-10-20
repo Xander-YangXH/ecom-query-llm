@@ -1,0 +1,81 @@
+{
+  "overall": {
+    "n": 13,
+    "format_valid_rate": 1.0,
+    "intent_acc": 1.0,
+    "intent_macro_f1": 1.0,
+    "attr_precision": 1.0,
+    "attr_recall": 1.0,
+    "attr_f1": 1.0,
+    "relevance_acc": 1.0,
+    "rewrite_exact_match": 1.0
+  },
+  "by_difficulty": {
+    "price": {
+      "n": 3,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": 1.0,
+      "rewrite_exact_match": 1.0
+    },
+    "multi_attr": {
+      "n": 4,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": 1.0,
+      "rewrite_exact_match": 1.0
+    },
+    "negation": {
+      "n": 1,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": null,
+      "rewrite_exact_match": 1.0
+    },
+    "intent_ambiguous": {
+      "n": 2,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": null,
+      "rewrite_exact_match": 1.0
+    },
+    "colloquial": {
+      "n": 2,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": null,
+      "rewrite_exact_match": 1.0
+    },
+    "alias": {
+      "n": 1,
+      "format_valid_rate": 1.0,
+      "intent_acc": 1.0,
+      "intent_macro_f1": 1.0,
+      "attr_precision": 1.0,
+      "attr_recall": 1.0,
+      "attr_f1": 1.0,
+      "relevance_acc": 1.0,
+      "rewrite_exact_match": 1.0
+    }
+  }
+}

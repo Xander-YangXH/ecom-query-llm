@@ -70,8 +70,8 @@ sbatch --export=ALL,MAKE_SMOKE=1,CONFIG=configs/sft/smoke_qlora.yaml,MODEL=Qwen2
 squeue -u $USER
 tail -f logs/ecomq-train_<jobid>.out
 
-# 4) 训练成功后做一次推理加打分
-sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=smoke,LORA=1 scripts/slurm/eval.sbatch
+# 4) 训练成功后做一次推理加打分；QLoRA 训练的模型要加 LOAD_4BIT=1，让基座的量化方式与训练一致（见 DEVLOG P8）
+sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=smoke,LORA=1,LOAD_4BIT=1 scripts/slurm/eval.sbatch
 ```
 
 冒烟通过的判断标准：

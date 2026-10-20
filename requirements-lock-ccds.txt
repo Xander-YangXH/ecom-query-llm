@@ -24,7 +24,6 @@ datasets==4.0.0
 dill==0.3.8
 docstring_parser==0.18.0
 # Editable install with no version control (ecomq==0.1.0)
--e ~/ecom-query-llm
 einops==0.8.2
 fastapi==0.151.0
 ffmpy==1.0.0

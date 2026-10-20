@@ -37,6 +37,12 @@ export WANDB_MODE=offline
 
 nvidia-smi --query-gpu=name,memory.total --format=csv
 
+# 每 15 秒记录一次显存占用，用于估算 batch 大小与正式训练的资源需求
+nvidia-smi --query-gpu=timestamp,memory.used,utilization.gpu --format=csv -l 15 \
+  > "logs/gpu_mem_${SLURM_JOB_ID}.csv" &
+GPU_LOGGER=$!
+trap 'kill $GPU_LOGGER 2>/dev/null || true' EXIT
+
 # 冒烟测试时 MAKE_SMOKE=1：在计算节点上生成冒烟数据（头节点不允许运行计算代码）
 if [ "${MAKE_SMOKE:-0}" = "1" ]; then
   PYTHONPATH=src python -m ecomq.data.make_smoke --n 400

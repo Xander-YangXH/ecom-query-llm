@@ -27,6 +27,7 @@ pip install --no-cache-dir -e ".[dev]"
 pip install --no-cache-dir -r requirements-single.txt
 
 mkdir -p "$DATA_ROOT" "$MODEL_ROOT" "$OUTPUT_ROOT" "$HF_HOME" logs
-pip freeze > requirements-lock-ccds.txt
+# --exclude-editable：不写入 "-e /home/<user>/..." 这类含用户名的本地路径（见 DEVLOG P9）
+pip freeze --exclude-editable > requirements-lock-ccds.txt
 echo "环境 ecomq 已创建，依赖版本已写入 requirements-lock-ccds.txt"
 du -sh "$CONDA_PREFIX" 2>/dev/null || true

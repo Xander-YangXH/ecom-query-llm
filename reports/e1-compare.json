@@ -1,0 +1,81 @@
+{
+  "n_queries": 600,
+  "n_examples": 2400,
+  "n_boot": 1000,
+  "systems": {
+    "base": {
+      "accuracy": 0.5262,
+      "accuracy_ci95": [
+        0.5008,
+        0.5529
+      ],
+      "macro_f1": 0.372,
+      "macro_f1_ci95": [
+        0.3487,
+        0.3961
+      ]
+    },
+    "qlora_bf16": {
+      "accuracy": 0.6771,
+      "accuracy_ci95": [
+        0.6512,
+        0.7017
+      ],
+      "macro_f1": 0.5138,
+      "macro_f1_ci95": [
+        0.4776,
+        0.5503
+      ]
+    },
+    "qlora_4bit": {
+      "accuracy": 0.6917,
+      "accuracy_ci95": [
+        0.6667,
+        0.7163
+      ],
+      "macro_f1": 0.5106,
+      "macro_f1_ci95": [
+        0.471,
+        0.5515
+      ]
+    }
+  },
+  "diffs": {
+    "qlora_bf16 - base": {
+      "accuracy": 0.1508,
+      "accuracy_ci95": [
+        0.1254,
+        0.1762
+      ],
+      "macro_f1": 0.1418,
+      "macro_f1_ci95": [
+        0.1072,
+        0.1752
+      ]
+    },
+    "qlora_4bit - base": {
+      "accuracy": 0.1654,
+      "accuracy_ci95": [
+        0.1383,
+        0.1913
+      ],
+      "macro_f1": 0.1386,
+      "macro_f1_ci95": [
+        0.0984,
+        0.1763
+      ]
+    },
+    "qlora_4bit - qlora_bf16": {
+      "accuracy": 0.0146,
+      "accuracy_ci95": [
+        0.0004,
+        0.0271
+      ],
+      "macro_f1": -0.0032,
+      "macro_f1_ci95": [
+        -0.0217,
+        0.0147
+      ]
+    }
+  }
+}

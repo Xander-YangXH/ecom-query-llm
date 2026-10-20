@@ -77,3 +77,13 @@ def test_evaluate_records_splits_by_task():
     assert set(report) == {"full", "relevance"}
     assert report["relevance"]["accuracy"] == 1.0
     assert report["full"]["intent_acc"] == 1.0
+
+
+def test_bootstrap_identical_systems_have_zero_diff():
+    from ecomq.eval.compare import bootstrap
+
+    groups = {f"q{i}": [("exact", {"a": "exact", "b": "exact"}), ("substitute", {"a": "exact", "b": "exact"})] for i in range(10)}
+    out = bootstrap(groups, ["a", "b"], n_boot=50, seed=0)
+    assert out["systems"]["a"]["accuracy"] == 0.5
+    assert out["diffs"]["b - a"]["accuracy"] == 0.0
+    assert out["diffs"]["b - a"]["macro_f1_ci95"] == [0.0, 0.0]

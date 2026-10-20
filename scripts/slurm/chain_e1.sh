@@ -19,7 +19,7 @@ wait_job() {  # 等作业离开队列，打印最终状态
 }
 
 if [ -n "${AFTER:-}" ]; then
-  echo "$(date +%T) wait $AFTER -> $(wait_job "$AFTER")"
+  S=$(wait_job "$AFTER"); echo "$(date +%T) wait $AFTER -> $S"
 fi
 
 # 训练：单作业上限 6 小时，超时（TIMEOUT）则用同一 RUN 续训，最多再续 2 次
@@ -36,8 +36,9 @@ for attempt in 1 2 3; do
 done
 [ "$S" = "COMPLETED" ] || { echo "train failed, stop chain"; exit 1; }
 
+# 先等作业结束再取时间：写成 echo "$(date) ... $(wait_job)" 时，date 在提交时就已求值，记录的是提交时间
 J=$(sbatch --parsable --export=ALL,$EVAL_ENV,LOAD_4BIT=1 scripts/slurm/eval.sbatch)
-echo "$(date +%T) eval-4bit job=$J state=$(wait_job "$J")"
+S=$(wait_job "$J"); echo "$(date +%T) eval-4bit job=$J state=$S"
 J=$(sbatch --parsable --export=ALL,$EVAL_ENV scripts/slurm/eval.sbatch)
-echo "$(date +%T) eval-bf16 job=$J state=$(wait_job "$J")"
+S=$(wait_job "$J"); echo "$(date +%T) eval-bf16 job=$J state=$S"
 echo "$(date +%T) chain done"

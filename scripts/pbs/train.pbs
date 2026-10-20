@@ -1,0 +1,40 @@
+#!/bin/bash
+# 提交：qsub -v CONFIG=configs/sft/qwen7b_lora_r16.yaml,MODEL=Qwen2.5-7B-Instruct,RUN=qwen7b-lora-r16,DS=configs/ds/ds_z2.json scripts/pbs/train.pbs
+# 下面的 -P / -q / select 资源行只是占位，请按 NSCC 当前文档和你的项目配额修改。
+#PBS -N ecomq-train
+#PBS -P <your-project-id>
+#PBS -q <queue-name>
+#PBS -l select=1:ncpus=32:ngpus=4:mem=400gb
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -o logs/
+
+set -euo pipefail
+cd "${PBS_O_WORKDIR:?}"
+mkdir -p logs
+
+set -a; source .env; set +a
+# module load ...   # 按 NSCC 文档加载 python / cuda
+source .venv/bin/activate
+
+# 计算节点通常不能访问外网：模型和数据需提前下载好
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export WANDB_MODE=offline
+
+: "${CONFIG:?用 -v CONFIG=... 指定配置}"
+: "${MODEL:?用 -v MODEL=... 指定 MODEL_ROOT 下的模型目录名}"
+: "${RUN:?用 -v RUN=... 指定本次实验名}"
+
+# 多卡：LLaMA-Factory 在 FORCE_TORCHRUN=1 时自动用 torchrun 拉起所有可见 GPU
+export FORCE_TORCHRUN=1
+
+# 多卡 LoRA 用 ZeRO-2（DS=configs/ds/ds_z2.json），全参数用 ZeRO-3（DS=configs/ds/ds_z3.json）；单卡不设
+DS_ARG=()
+[ -n "${DS:-}" ] && DS_ARG=(deepspeed="$DS")
+
+llamafactory-cli train "$CONFIG" \
+  model_name_or_path="$MODEL_ROOT/$MODEL" \
+  dataset_dir="$DATA_ROOT/llamafactory" \
+  output_dir="$OUTPUT_ROOT/$RUN" \
+  ${DS_ARG[@]+"${DS_ARG[@]}"}

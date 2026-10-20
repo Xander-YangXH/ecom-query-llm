@@ -1,0 +1,25 @@
+# 数据、模型、产出都放远端，不进 git
+/data/
+/models/
+/outputs/
+/saves/
+/build/
+wandb/
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.gguf
+
+# 本地环境与密钥
+.env
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+
+# PBS 日志
+*.o[0-9]*
+*.e[0-9]*
+logs/

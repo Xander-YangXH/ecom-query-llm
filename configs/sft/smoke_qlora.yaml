@@ -1,0 +1,39 @@
+# CCDS 单卡 L40S 的冒烟测试：只验证流程能跑通（加载、4bit、前后向、保存、推理），不看效果。
+# 路径类参数在 sbatch 脚本里用命令行覆盖。模型名请换成当前可用的 7B 级 Instruct 版本。
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+quantization_bit: 4
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+
+dataset: ecom_query_train
+eval_dataset: ecom_query_val
+template: qwen
+cutoff_len: 512
+max_samples: 400
+overwrite_cache: true
+preprocessing_num_workers: 4
+
+output_dir: saves/smoke
+logging_steps: 1
+save_steps: 20
+save_total_limit: 1
+plot_loss: true
+overwrite_output_dir: true
+
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-4
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
+
+per_device_eval_batch_size: 2
+eval_strategy: steps
+eval_steps: 20
+report_to: none

@@ -1,0 +1,7 @@
+# 单卡环境（CCDS L40S）：QLoRA 训练 + transformers 推理。不含 vLLM 与 DeepSpeed。
+# 先安装与计算节点 CUDA 兼容的 PyTorch，再装下面这些。版本请在跑通后用 pip freeze 锁定。
+llamafactory
+bitsandbytes
+transformers
+peft
+accelerate

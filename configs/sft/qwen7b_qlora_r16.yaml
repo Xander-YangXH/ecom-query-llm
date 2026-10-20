@@ -1,0 +1,39 @@
+# CCDS 单卡 L40S（48GB）的正式 QLoRA 训练。每个作业最长约 6 小时，到点后用同一个 RUN 名重新提交即可续训。
+# overwrite_output_dir 必须为 false：这样重新提交时会从 output_dir 里最新的 checkpoint 继续。
+# （续训行为依赖 LLaMA-Factory 版本，首次使用请在日志里确认出现 "Resuming" 字样。）
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+quantization_bit: 4
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+
+dataset: ecom_query_train
+eval_dataset: ecom_query_val
+template: qwen
+cutoff_len: 1024
+overwrite_cache: true
+preprocessing_num_workers: 4
+
+output_dir: saves/qwen7b-qlora-r16
+logging_steps: 10
+save_steps: 200
+save_total_limit: 2
+plot_loss: true
+overwrite_output_dir: false
+
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
+
+per_device_eval_batch_size: 4
+eval_strategy: steps
+eval_steps: 200
+report_to: none

@@ -1,0 +1,38 @@
+# bf16 LoRA。单卡（CCDS L40S）可直接用；多卡（NSCC）在作业脚本里追加 deepspeed=configs/ds/ds_z2.json。
+# overwrite_output_dir=false：重新提交同一个 RUN 会从最新 checkpoint 续训。
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+
+dataset: ecom_query_train
+eval_dataset: ecom_query_val
+template: qwen
+cutoff_len: 1024
+overwrite_cache: true
+preprocessing_num_workers: 4
+
+output_dir: saves/qwen7b-lora-r16
+logging_steps: 10
+save_steps: 200
+save_total_limit: 2
+plot_loss: true
+overwrite_output_dir: false
+
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 8
+learning_rate: 1.0e-4
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
+ddp_timeout: 180000000
+
+per_device_eval_batch_size: 4
+eval_strategy: steps
+eval_steps: 200
+report_to: none

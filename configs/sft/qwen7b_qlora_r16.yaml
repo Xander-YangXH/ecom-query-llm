@@ -1,6 +1,6 @@
 # CCDS 单卡 L40S（48GB）的正式 QLoRA 训练。每个作业最长约 6 小时，到点后用同一个 RUN 名重新提交即可续训。
-# overwrite_output_dir 必须为 false：这样重新提交时会从 output_dir 里最新的 checkpoint 继续。
-# （续训行为依赖 LLaMA-Factory 版本，首次使用请在日志里确认出现 "Resuming" 字样。）
+# 续训：LLaMA-Factory 发现 output_dir 里有 checkpoint 就自动接着训（日志出现 "Resuming training from"）。
+# transformers 5.x 已移除 overwrite_output_dir，不要再写这个参数，否则参数解析会报错。
 model_name_or_path: Qwen/Qwen2.5-7B-Instruct
 stage: sft
 do_train: true
@@ -23,7 +23,6 @@ logging_steps: 10
 save_steps: 200
 save_total_limit: 2
 plot_loss: true
-overwrite_output_dir: false
 
 per_device_train_batch_size: 4
 gradient_accumulation_steps: 8

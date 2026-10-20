@@ -19,7 +19,9 @@ python -m pip install -U pip
 
 # --no-cache-dir：家目录配额约 100GB，避免 pip 缓存再存一份几 GB 的 wheel
 # PyTorch：wheel 的 CUDA 版本需与计算节点驱动兼容（指南里可用 module load cuda/12.8.0）。
-pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu128
+# torch / torchvision / torchaudio 必须一起从同一个 CUDA 源安装：只装 torch 的话，后续依赖会从 PyPI
+# 拉来另一种 CUDA 构建的 torchvision，导入时报 "operator torchvision::nms does not exist"。
+pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 pip install --no-cache-dir -e ".[dev]"
 pip install --no-cache-dir -r requirements-single.txt

@@ -1,5 +1,6 @@
 # bf16 LoRA。单卡（CCDS L40S）可直接用；多卡（NSCC）在作业脚本里追加 deepspeed=configs/ds/ds_z2.json。
-# overwrite_output_dir=false：重新提交同一个 RUN 会从最新 checkpoint 续训。
+# 续训：LLaMA-Factory 发现 output_dir 里有 checkpoint 就自动接着训，重新提交同一个 RUN 即可。
+# （transformers 5.x 已移除 overwrite_output_dir，不要再写这个参数，否则参数解析会报错。）
 model_name_or_path: Qwen/Qwen2.5-7B-Instruct
 stage: sft
 do_train: true
@@ -21,7 +22,6 @@ logging_steps: 10
 save_steps: 200
 save_total_limit: 2
 plot_loss: true
-overwrite_output_dir: false
 
 per_device_train_batch_size: 4
 gradient_accumulation_steps: 8

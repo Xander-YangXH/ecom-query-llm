@@ -1,5 +1,6 @@
 # CCDS 单卡 L40S 的冒烟测试：只验证流程能跑通（加载、4bit、前后向、保存、推理），不看效果。
 # 路径类参数在 sbatch 脚本里用命令行覆盖。模型名请换成当前可用的 7B 级 Instruct 版本。
+# 想从头重跑冒烟时请换一个 RUN 名：同一个 output_dir 里有 checkpoint 会被自动续训。
 model_name_or_path: Qwen/Qwen2.5-7B-Instruct
 stage: sft
 do_train: true
@@ -23,7 +24,6 @@ logging_steps: 1
 save_steps: 20
 save_total_limit: 1
 plot_loss: true
-overwrite_output_dir: true
 
 per_device_train_batch_size: 2
 gradient_accumulation_steps: 2

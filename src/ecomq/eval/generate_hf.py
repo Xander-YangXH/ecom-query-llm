@@ -29,7 +29,8 @@ def main():
     tok = AutoTokenizer.from_pretrained(args.model, padding_side="left")
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
-    kwargs = {"torch_dtype": torch.bfloat16, "device_map": {"": 0}}
+    # transformers 5.x 用 dtype（旧名 torch_dtype 已弃用）；版本见 requirements-lock-ccds.txt
+    kwargs = {"dtype": torch.bfloat16, "device_map": {"": 0}}
     if args.load_4bit:
         kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,

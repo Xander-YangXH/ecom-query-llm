@@ -1,11 +1,23 @@
 # 技术日志（DEVLOG）
 
-按时间顺序记录每一步：**为什么做、怎么做、效果如何、遗留问题**。
+按时间顺序记录每一步：**为什么做、怎么做、效果如何、遇到的问题与解决方式、遗留问题**。
 写给三类读者：组员（了解进度与决策）、未来的自己（复现与排错）、面试官（讲清工程取舍）。
 
 约定：
 - 服务器主机名、用户名、密码、API Key 一律不写进仓库。文中用 `<ccds-host>`、`<user>` 代替。
 - 数字只写实际跑出来的；估算会明确标注“估算”。
+- 每个技术问题按「现象 → 原因 → 解决 → 验证」记录，并在下面的索引里登记一行。
+
+## 问题索引
+
+| 编号 | 步骤 | 问题 | 一句话解决 |
+|---|---|---|---|
+| P1 | S1 | 训练与推理的提示词结构不一致（评测会被系统性低估） | 统一用 `build_user_prompt()`，并加单测锁定 |
+| P2 | S4 | 分区内 GPU 未标型号，无法按型号申请 L40S | `--exclude=TC2N0[1-6]` 只留 L40S 节点 |
+| P3 | S5 | 导入 peft 报 `torchvision::nms does not exist` | torch/torchvision/torchaudio 从同一个 cu128 源安装 |
+| P4 | S5 | 模型只下载了 6 个文件，缺 `config.json` 和分词器 | 去掉 `hf download` 的多模式 `--include`，下载整个仓库 |
+| P5 | S5 | transformers 5.x 移除了 `overwrite_output_dir`，配置会解析失败 | 从所有配置删除该参数，依赖 LLaMA-Factory 默认续训 |
+| P6 | S5 | transformers 5.x 中 `torch_dtype` 已弃用 | 推理脚本改用 `dtype` |
 
 ---
 
@@ -41,14 +53,16 @@
 - 新增 `scripts/slurm/train.sbatch`、`eval.sbatch`；保留 `scripts/pbs/*.pbs` 给 NSCC。
 - 新增单卡配置：`configs/sft/smoke_qlora.yaml`（冒烟）、`qwen7b_qlora_r16.yaml`（正式单卡 QLoRA）。
 - DeepSpeed 从基础配置中移出，改为 NSCC 多卡作业通过 `DS=...` 追加，单卡不加载。
-- 续训：配置里 `overwrite_output_dir: false` + `save_total_limit: 2`，CCDS 单作业 6 小时上限到点后，用同一个 `RUN` 重新提交即从最新 checkpoint 继续。
+- 续训：`save_total_limit: 2` 控制 checkpoint 数量；CCDS 单作业 6 小时上限到点后，用同一个 `RUN` 重新提交即从最新 checkpoint 继续（最初用 `overwrite_output_dir: false` 实现，后因 P5 改为依赖 LLaMA-Factory 的默认行为）。
 - 新增 `make_smoke.py`：把 13 条手写样本复制成 400 条，只用于验证流程。
 - 新增 `generate_hf.py`：transformers + peft 推理，不依赖 vLLM，CCDS 上安装更简单。
 
-**修复的一个隐蔽问题：训练与推理提示词不一致**
-- 现象（代码审查发现，未上机）：LLaMA-Factory 处理 Alpaca 样本时，把 `instruction` 和 `input` 用换行拼成**同一条 user 消息**；而原推理脚本把 `instruction` 放在 **system** 消息里。
+**P1 · 训练与推理提示词不一致**
+- 现象：代码审查时发现，未上机。LLaMA-Factory 处理 Alpaca 样本时，把 `instruction` 和 `input` 用换行拼成**同一条 user 消息**；而原推理脚本把 `instruction` 放在 **system** 消息里。
+- 原因：写推理脚本时按常见的「system 放指令」习惯写，没有对照训练框架实际的拼接方式。
 - 影响：模型在推理时看到的输入分布与训练时不同，评测分数会被系统性低估，而且很难从结果上看出原因。
-- 修复：`schema.build_user_prompt()` 作为唯一的推理提示词构造函数，两个推理脚本都调用它；新增单测 `test_inference_prompt_matches_training_prompt` 锁死这一点。
+- 解决：`schema.build_user_prompt()` 作为唯一的推理提示词构造函数，两个推理脚本都调用它。
+- 验证：新增单测 `test_inference_prompt_matches_training_prompt`，逐条比对两边拼出的文本完全一致。
 
 **效果**
 - 本地 15 项单测通过，8 个 shell 脚本语法检查通过。
@@ -127,3 +141,60 @@
 |---|---|---|---|
 | TC2N01–02 | 8 | 104 | 约 340GB |
 | TC2N03–08 | 4 | 128 | 约 450GB |
+
+---
+
+## S5 · CCDS 环境搭建、模型下载与 GPU 验证（2026-10-20）
+
+**为什么**
+- 在提交任何训练之前，先单独确认「环境 + 硬件 + 模型文件」三件事都没问题。否则训练作业失败时很难判断是代码、环境还是硬件的问题，而且每次排队都浪费时间。
+
+**怎么做**
+1. 环境：`scripts/setup_env_ccds.sh` 在头节点创建 conda 环境 `ecomq`（只做安装，不跑计算）。
+   - 只用 conda-forge 频道：新版 conda 的 Anaconda 默认频道要求先接受服务条款，conda-forge 不需要。
+   - `pip install --no-cache-dir`：家目录配额约 100GB，避免 pip 缓存再存一份几 GB 的 wheel。
+   - 装完 `pip freeze > requirements-lock-ccds.txt`，锁定版本，NSCC 上按同样的版本装。
+2. 模型：`scripts/download_model.sh Qwen/Qwen2.5-7B-Instruct`，在头节点下载到 `$MODEL_ROOT`。
+3. 验证：`scripts/slurm/gpu_check.sbatch`（10 分钟、8GB 内存的小作业），检查显卡型号与驱动、PyTorch CUDA、bf16、bitsandbytes 4bit 前向、各库能否导入、计算节点外网。
+
+**效果**
+
+| 项目 | 结果 |
+|---|---|
+| 环境安装耗时 | 约 8 分钟；环境占用 8.4GB |
+| 关键版本 | torch 2.11.0+cu128、transformers 5.6.0、peft 0.18.1、bitsandbytes 0.50.2、llamafactory 0.9.5、trl 0.24.0 |
+| 依赖一致性 | `pip check`：No broken requirements found |
+| 模型 | Qwen2.5-7B-Instruct，15GB，13 个文件齐全 |
+| GPU 节点 | TC2N08，NVIDIA L40S，46068 MiB，驱动 570.148.08（支持 CUDA 12.8） |
+| bf16 / 4bit | bf16 矩阵乘与 bitsandbytes NF4 前向均通过 |
+| 计算节点外网 | 可访问 Hugging Face（HTTP 200） |
+| 验证作业 | 第一次（44740）失败，修复 P3 后第二次（44741）通过，耗时 11 秒 |
+
+**P3 · 导入 peft 报 `operator torchvision::nms does not exist`**
+- 现象：第一次 GPU 验证作业中，PyTorch、bf16、bitsandbytes 都通过，但 `import peft` 失败，错误链最终是 `Could not import module 'PreTrainedModel'`。
+- 原因：环境脚本先从 PyTorch 的 cu128 源只装了 `torch`；随后安装 LLaMA-Factory 时，pip 为满足依赖从 PyPI 装了 `torchvision`、`torchaudio`。PyPI 上的这两个包是另一种 CUDA 构建，与 `torch+cu128` 的 C++ 算子注册不兼容。transformers 导入时会触发 torchvision，于是连带 peft 失败。
+- 解决：
+  - 服务器上：`pip install --force-reinstall --no-deps torchvision==0.26.0 torchaudio==2.11.0 --index-url .../cu128`。
+  - 脚本里：改为 `pip install torch torchvision torchaudio --index-url .../cu128` 一次装齐，后续依赖发现已满足就不会再从 PyPI 拉取。
+- 验证：`pip list` 显示三者均为 `+cu128`；第二次 GPU 验证作业全部通过。
+- 经验：错误信息指向 transformers/peft，根因却在 torchvision。看到 `operator ... does not exist` 这类 C++ 算子错误，先查 torch 系列包的 CUDA 构建是否一致。
+
+**P4 · 模型只下载了 6 个文件**
+- 现象：下载结束显示 15GB，但目录里没有 `config.json` 和分词器文件，日志里有警告 `Ignoring --include since filenames have been explicitly set`。
+- 原因：脚本写成 `hf download repo --include "*.json" "*.safetensors" ...`。新版 `hf` CLI 只把第一个模式当作 `--include` 的值，其余被当作位置参数（文件名），于是 `--include` 整体被忽略，只按“文件名”下载了能匹配到的几个文件。
+- 解决：去掉 `--include`，直接下载整个仓库（该仓库里没有多余的大文件）；重跑时已下载的分片会被跳过。
+- 验证：13 个文件齐全。
+- 经验：只看总大小会误判“下载完成”，要核对关键文件是否存在。
+
+**P5 · transformers 5.x 移除了 `overwrite_output_dir`**
+- 现象：上机前检查已安装的 LLaMA-Factory 源码，发现注释 `for mca training args and transformers >= 5.0`；进一步确认 transformers 5.6 的 `TrainingArguments` 中已没有这个字段。
+- 原因：配置里写了 `overwrite_output_dir`，而 LLaMA-Factory 默认不允许多余参数（`allow_extra_keys=False`），作业一启动就会解析失败。
+- 解决：从所有训练配置中删除该参数。续训改为依赖 LLaMA-Factory 的默认行为：只要 `output_dir` 里有 `checkpoint-*`，就自动从最新的继续（日志出现 `Resuming training from`）。
+- 副作用：冒烟配置不能再“强制从头训练”，要从头重跑时换一个 `RUN` 名即可。
+- 经验：大版本升级（transformers 4 → 5）后，先读一遍训练框架的参数解析代码，比提交作业等报错更省时间。
+
+**P6 · transformers 5.x 中 `torch_dtype` 已弃用**
+- 解决：`generate_hf.py` 加载模型时改用 `dtype=torch.bfloat16`。属于预防性修改，避免日志被弃用警告淹没，以及后续版本彻底移除后报错。
+
+**遗留问题**
+- 冒烟训练与评测结果见 S6。

@@ -73,6 +73,17 @@ def rebalance(train_df, pool, targets: dict[str, float], seed: int):
     return pd.concat([keep_target, others_kept, add]).sample(frac=1.0, random_state=seed)
 
 
+def grow_train(base_records: list[dict], train_pool, n_queries: int, per_query: int, seed: int,
+               exclude: set) -> tuple[list[dict], set]:
+    """在已有训练集（base_records，原样保留）的基础上补充新的 query，使总 query 数达到 n_queries。
+    保证嵌套：小数据集的每一条都出现在大数据集中，曲线上各点之间只有数据量不同（DEVLOG S13）。"""
+    base_q = {r["meta"]["query_id"] for r in base_records}
+    need = n_queries - len(base_q)
+    assert need >= 0, f"base already has {len(base_q)} queries > {n_queries}"
+    add_df, add_q = sample_queries(train_pool, need, per_query, seed, exclude=exclude | base_q)
+    return base_records + [to_record(r) for r in add_df.to_dict("records")], base_q | add_q
+
+
 def to_record(row) -> dict:
     title = str(row["product_title"]).strip()
     if len(title) > TITLE_MAX_CHARS:
@@ -122,6 +133,10 @@ def main():
     ap.add_argument("--tune-exclude", nargs="*", default=[],
                     help="这些 jsonl 中出现过的 query 不进入 tune（例如各实验的训练集）")
     ap.add_argument("--only-tune", action="store_true", help="只写出 tune")
+    ap.add_argument("--grow-from", help="在这个训练集 jsonl 的基础上扩充到 --train-queries 个 query（嵌套数据量曲线）")
+    ap.add_argument("--exclude-queries-from", nargs="*", default=[],
+                    help="扩充训练集时排除这些 jsonl 中的 query（例如调参集）")
+    ap.add_argument("--skip-test", action="store_true", help="不写出 test")
     ap.add_argument("--only-test", action="store_true",
                     help="只写出 test（例如扩大测试集时），train/val 照常抽样用于不重叠校验但不写出")
     args = ap.parse_args()
@@ -162,6 +177,19 @@ def main():
              "pool": {"train_rows": len(train_pool), "test_rows": len(test_pool),
                       "train_label_share": train_pool["esci_label"].value_counts(normalize=True).round(4).to_dict()}}
     parts = (("test", test_df),) if args.only_test else (("train", train_df), ("val", val_df), ("test", test_df))
+    if args.skip_test:
+        parts = tuple(p for p in parts if p[0] != "test")
+    grown = None
+    if args.grow_from:
+        from ecomq.data.io import read_jsonl
+        excluded = set(val_q) | set(test_pool["query_id"])
+        for path in args.exclude_queries_from:
+            excluded |= {r["meta"]["query_id"] for r in read_jsonl(path)}
+        grown, grown_q = grow_train(list(read_jsonl(args.grow_from)), train_pool, args.train_queries,
+                                    args.per_query, args.seed + 5, excluded)
+        assert not (grown_q & excluded), "grown train overlaps val/test/excluded queries"
+        stats["grow_from"] = args.grow_from
+        stats["grow_excluded_queries"] = len(excluded)
     if args.tune_queries:
         from ecomq.data.io import read_jsonl
         excluded = set(train_q) | set(val_q)
@@ -172,7 +200,7 @@ def main():
         stats["tune_excluded_queries"] = len(excluded)
         parts = (("tune", tune_df),) if args.only_tune else parts + (("tune", tune_df),)
     for name, part in parts:
-        records = [to_record(r) for r in part.to_dict("records")]
+        records = grown if (name == "train" and grown is not None) else [to_record(r) for r in part.to_dict("records")]
         bad = [r["id"] for r in records if validate_record(r)]
         assert not bad, f"{len(bad)} invalid records in {name}, e.g. {bad[:3]}"
         write_jsonl(out / "splits" / f"{name}.jsonl", records)

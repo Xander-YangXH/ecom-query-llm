@@ -53,3 +53,17 @@ def test_rebalance_hits_targets_and_keeps_size():
     assert out["example_id"].is_unique
     added = set(out["example_id"]) - set(train["example_id"])
     assert added <= set(pool["example_id"])  # 新增样本都是此前未使用的真实样本
+
+
+def test_grow_train_is_nested_and_respects_exclusions():
+    from ecomq.data.prepare_esci import grow_train
+
+    df = _df()
+    base_df, base_q = sample_queries(df, 5, 4, seed=1)
+    base = [to_record(r) for r in base_df.to_dict("records")]
+    excluded = {0, 1, 2} - base_q
+    grown, grown_q = grow_train(base, df, 12, 4, seed=7, exclude=excluded)
+    assert len(grown_q) == 12 and base_q <= grown_q
+    assert grown[: len(base)] == base               # 小集合原样保留在前面
+    assert not (grown_q & excluded)
+    assert len({r["id"] for r in grown}) == len(grown)

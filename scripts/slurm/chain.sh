@@ -7,7 +7,8 @@
 #   RUN, CONFIG, DATASET_DIR       必填
 #   TEST                           测试集，默认 $DATA_ROOT/e1_relevance/splits/test.jsonl
 #   PREP_ARGS                      非空则先提交 prepare_data 作业（传给 prepare_esci）
-#   EVALS                          评测方式，默认 "4bit"，可为 "4bit bf16"
+#   EVALS                          评测方式，默认 "4bit"，可为 "4bit bf16"；"none" 表示不做生成式评测
+#   TRAIN_OVERRIDES                追加给训练作业的配置覆盖（从环境继承）
 #   MODEL                          默认 Qwen2.5-7B-Instruct
 #   AFTER / TRAIN_JOB              先等待某作业 / 接管已提交的训练作业
 set -eo pipefail
@@ -46,6 +47,7 @@ done
 [ "$S" = "COMPLETED" ] || { log "train failed, stop"; exit 1; }
 
 for mode in $EVALS; do
+  [ "$mode" = "none" ] && continue
   EXTRA=""; [ "$mode" = "4bit" ] && EXTRA=",LOAD_4BIT=1"
   J=$(sbatch --parsable --export=ALL,MODEL="$MODEL",RUN="$RUN",LORA=1,TEST="$TEST",BATCH_SIZE=32,MAX_NEW_TOKENS=24$EXTRA scripts/slurm/eval.sbatch)
   S=$(wait_job "$J"); log "eval-$mode job=$J state=$S"

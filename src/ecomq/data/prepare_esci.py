@@ -139,16 +139,21 @@ def main():
     val_df, val_q = sample_queries(train_pool, args.val_queries, args.per_query, args.seed)
     train_df, train_q = sample_queries(train_pool, args.train_queries, args.per_query, args.seed + 1, exclude=val_q)
     test_df, test_q = sample_queries(test_pool, args.test_queries, args.per_query, args.seed + 2)
+    # 官方 train/test 之间有极少数共享的 query（美国英文 large_version 中只有 1 个，见 DEVLOG P13）。
+    # 抽样之后再剔除，而不是先从池子里剔除：这样不含共享 query 的历史测试集（如 E1 的 600 个）重新生成时保持不变。
+    shared = set(test_pool["query_id"]) & set(train_pool["query_id"])
+    dropped = sorted(test_q & shared)
+    test_df, test_q = test_df[~test_df["query_id"].isin(shared)], test_q - shared
+    print(f"official train/test shared queries={len(shared)}, dropped from sampled test={len(dropped)}")
     assert not (val_q & train_q), "val/train query overlap"
-    # 官方划分按 query 隔离 train/test；这里再显式校验一次，防止抽样代码改动后引入泄漏
-    assert not (test_q & (train_q | val_q)), "test query overlaps train/val"
-    assert not (set(test_pool["query_id"]) & set(train_pool["query_id"])), "official train/test share queries"
+    assert not (test_q & (train_q | val_q | set(train_pool["query_id"]))), "test query overlaps train/val"
     if args.rebalance:
         targets = parse_targets(args.rebalance)
         train_df = rebalance(train_df, train_pool[~train_pool["query_id"].isin(val_q)], targets, args.seed + 3)
 
     stats = {"source": "ESCI us large_version", "per_query": args.per_query, "seed": args.seed,
              "rebalance": args.rebalance or None,
+             "official_shared_queries": len(shared), "test_dropped_shared_queries": len(dropped),
              "pool": {"train_rows": len(train_pool), "test_rows": len(test_pool),
                       "train_label_share": train_pool["esci_label"].value_counts(normalize=True).round(4).to_dict()}}
     parts = (("test", test_df),) if args.only_test else (("train", train_df), ("val", val_df), ("test", test_df))

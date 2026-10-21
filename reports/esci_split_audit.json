@@ -1,0 +1,75 @@
+{
+  "official": {
+    "small_version": {
+      "train_queries": 20888,
+      "test_queries": 8956,
+      "shared_query_ids": 0,
+      "test_rows_with_shared_id": 0,
+      "shared_query_texts": 0,
+      "test_rows_with_shared_text": 0,
+      "examples_shared_text": []
+    },
+    "large_version": {
+      "train_queries": 74888,
+      "test_queries": 22458,
+      "shared_query_ids": 1,
+      "test_rows_with_shared_id": 31,
+      "shared_query_texts": 1,
+      "test_rows_with_shared_text": 31,
+      "examples_shared_text": [
+        "piano"
+      ],
+      "query_product_pairs_in_both_splits": 0
+    }
+  },
+  "project": {
+    "e1_train & e1_val": {
+      "shared_query_ids": 0,
+      "shared_query_texts": 0,
+      "sizes": [
+        5000,
+        250
+      ]
+    },
+    "e1_train & e2b_train": {
+      "shared_query_ids": 4994,
+      "shared_query_texts": 4994,
+      "sizes": [
+        5000,
+        8282
+      ]
+    },
+    "e1_train & test": {
+      "shared_query_ids": 0,
+      "shared_query_texts": 0,
+      "sizes": [
+        5000,
+        600
+      ]
+    },
+    "e1_val & e2b_train": {
+      "shared_query_ids": 0,
+      "shared_query_texts": 0,
+      "sizes": [
+        250,
+        8282
+      ]
+    },
+    "e1_val & test": {
+      "shared_query_ids": 0,
+      "shared_query_texts": 0,
+      "sizes": [
+        250,
+        600
+      ]
+    },
+    "e2b_train & test": {
+      "shared_query_ids": 0,
+      "shared_query_texts": 0,
+      "sizes": [
+        8282,
+        600
+      ]
+    }
+  }
+}

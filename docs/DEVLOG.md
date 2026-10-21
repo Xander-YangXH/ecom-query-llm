@@ -24,6 +24,7 @@
 | P10 | S7 | 一次性提交整条依赖链被拒：`QOSMaxSubmitJobPerUserLimit` | 每人最多同时提交 2 个作业；改用头节点上的顺序调度脚本 `chain_e1.sh` |
 | P11 | S7 | 调度脚本挂在本机 SSH 会话里，断开后可能被 SIGPIPE 终止；`pkill -f` 误杀了执行它的 SSH 会话 | 改用 `setsid nohup` 在服务器上独立运行、直接写日志；`pkill` 的匹配模式不要包含命令行里出现的文本 |
 | P12 | S9 | `sbatch --export=...,PREP_ARGS="... complement=0.10,irrelevant=0.20"` 会把值里的逗号当成变量分隔符 | 含逗号的值改为通过环境变量传递，依靠 `--export=ALL` 继承 |
+| P13 | S11 | 扩大测试集时断言报错：官方 train/test 有共享的 query | 审计发现仅 1 个（"piano"），E1/E2 测试集不含；改为抽样后剔除共享 query，历史测试集保持不变 |
 
 ---
 
@@ -544,3 +545,21 @@
   - 新增两条断言：新测试集的 query 与 train/val 不重叠；官方 train 与 test 之间没有共同的 query（这条如果失败，说明 E1 的测试集同样有泄漏）。
 - 评测：**不重新训练**，直接用已有的四个模型，设置与原评测完全一致（基线 bf16；E1、E2a、E2b 用 4bit 基座 + 适配器；E2a、E2b 用的是训练结束时加载的最优 checkpoint）。
 - 调度：`scripts/slurm/run_r1.sh`，与 E2 一样在头节点用 `setsid nohup` 独立运行。
+
+
+**P13 · 官方 train/test 之间存在共享的 query**
+- 现象：R1 第一次运行时，生成新测试集的作业（45072）在新加的断言处失败：`official train/test share queries`。
+- 为什么重要：E1、E2 的测试集是在“官方划分按 query 隔离”的假设下抽的。如果官方划分有大量重叠，之前所有结论都可能被泄漏污染。
+- 排查：新增 `src/ecomq/data/audit_esci_split.py`，在本机用官方标注文件做审计（纯读取，结果在 `reports/esci_split_audit.json`）：
+
+| 检查 | 结果 |
+|---|---|
+| 官方 small_version（Task 1）train/test 共享 query | 0 |
+| 官方 large_version（Task 2/3）train/test 共享 query | **1 个**（query 文本 `piano`，编号 79706），涉及测试集 31 条；没有任何“query–商品”对同时出现在两边 |
+| 本项目：E1/E2 测试集（600 个 query）与 E1 训练集、验证集、E2b 训练集 | 按编号和按文本都是 **0** |
+| E1 测试集是否包含 79706 | 不包含 |
+
+- 结论：**E1、E2 的结论不受泄漏影响**。官方划分在 large_version 中有 1 个 query 的例外，可能是数据整理时的个别疏漏。
+- 解决：`prepare_esci.py` 在抽样**之后**剔除与官方训练集共享的 query，并把数量写进 `stats.json`；同时保留断言，确保最终测试集与训练池没有任何共享 query。
+  - 选择“抽样后剔除”而不是“先从池子里剔除”：池子变了会改变随机抽样的结果，E1 的测试集就无法按原样复现；抽样后剔除时，不含该 query 的历史测试集保持逐字节不变。
+- 经验：对官方数据集的划分也要验证，不能想当然。这次是靠显式断言才发现的，之后对每个新数据源都先跑一遍审计。

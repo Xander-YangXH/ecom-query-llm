@@ -117,6 +117,8 @@ def main():
     ap.add_argument("--per-query", type=int, default=4)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--rebalance", default="", help="例如 complement=0.10,irrelevant=0.20；只作用于 train")
+    ap.add_argument("--only-test", action="store_true",
+                    help="只写出 test（例如扩大测试集时），train/val 照常抽样用于不重叠校验但不写出")
     args = ap.parse_args()
 
     raw, out = Path(args.raw_dir), Path(args.out_dir)
@@ -136,8 +138,11 @@ def main():
     test_pool = df[df["split"] == "test"]
     val_df, val_q = sample_queries(train_pool, args.val_queries, args.per_query, args.seed)
     train_df, train_q = sample_queries(train_pool, args.train_queries, args.per_query, args.seed + 1, exclude=val_q)
-    test_df, _ = sample_queries(test_pool, args.test_queries, args.per_query, args.seed + 2)
+    test_df, test_q = sample_queries(test_pool, args.test_queries, args.per_query, args.seed + 2)
     assert not (val_q & train_q), "val/train query overlap"
+    # 官方划分按 query 隔离 train/test；这里再显式校验一次，防止抽样代码改动后引入泄漏
+    assert not (test_q & (train_q | val_q)), "test query overlaps train/val"
+    assert not (set(test_pool["query_id"]) & set(train_pool["query_id"])), "official train/test share queries"
     if args.rebalance:
         targets = parse_targets(args.rebalance)
         train_df = rebalance(train_df, train_pool[~train_pool["query_id"].isin(val_q)], targets, args.seed + 3)
@@ -146,7 +151,8 @@ def main():
              "rebalance": args.rebalance or None,
              "pool": {"train_rows": len(train_pool), "test_rows": len(test_pool),
                       "train_label_share": train_pool["esci_label"].value_counts(normalize=True).round(4).to_dict()}}
-    for name, part in (("train", train_df), ("val", val_df), ("test", test_df)):
+    parts = (("test", test_df),) if args.only_test else (("train", train_df), ("val", val_df), ("test", test_df))
+    for name, part in parts:
         records = [to_record(r) for r in part.to_dict("records")]
         bad = [r["id"] for r in records if validate_record(r)]
         assert not bad, f"{len(bad)} invalid records in {name}, e.g. {bad[:3]}"
@@ -154,7 +160,8 @@ def main():
         stats[name] = label_stats(records)
         print(name, json.dumps(stats[name]))
 
-    export(out / "splits", out / "llamafactory", prefix="esci_rel")
+    if not args.only_test:
+        export(out / "splits", out / "llamafactory", prefix="esci_rel")
     (out / "stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     print(f"done -> {out}")
 

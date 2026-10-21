@@ -1,0 +1,32 @@
+#!/bin/bash
+# 计算 relevance 四个候选标签的对数概率（推理时先验调整用，见 DEVLOG S12）。
+#   sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=e2a-1ep-best,TEST=<jsonl>,NAME=<结果名>,LOAD_4BIT=1 scripts/slurm/label_scores.sbatch
+# 输出：$OUTPUT_ROOT/label_scores/$NAME.jsonl
+#SBATCH --partition=MGPU-TC2
+#SBATCH --qos=normal
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:1
+# L40S 只在 TC2N07、TC2N08 上（GRES 未标显卡型号，无法用 --gres=gpu:l40s 指定），排除其余节点
+#SBATCH --exclude=TC2N0[1-6]
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=30G
+#SBATCH --time=01:30:00
+#SBATCH --job-name=ecomq-lblscore
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
+
+set -eo pipefail
+cd "${SLURM_SUBMIT_DIR:?}"
+: "${MODEL:?}"; : "${RUN:?}"; : "${TEST:?}"; : "${NAME:?}"
+set -a; source .env; set +a
+module load anaconda
+eval "$(conda shell.bash hook)"
+conda activate ecomq
+module load cuda/12.8.0
+
+ARGS=(--model "$MODEL_ROOT/$MODEL" --lora "$OUTPUT_ROOT/$RUN" --test "$TEST"
+      --output "$OUTPUT_ROOT/label_scores/$NAME.jsonl" --batch-size "${BATCH_SIZE:-32}")
+[ -n "${LOAD_4BIT:-}" ] && ARGS+=(--load-4bit)
+START=$SECONDS
+PYTHONPATH=src python -m ecomq.eval.score_labels "${ARGS[@]}"
+echo "score_labels: $((SECONDS - START))s"

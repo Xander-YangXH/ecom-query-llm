@@ -117,6 +117,11 @@ def main():
     ap.add_argument("--per-query", type=int, default=4)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--rebalance", default="", help="例如 complement=0.10,irrelevant=0.20；只作用于 train")
+    ap.add_argument("--tune-queries", type=int, default=0,
+                    help=">0 时额外从官方 train 池抽一个调参集 tune（用于推理时先验调整等，见 DEVLOG S12）")
+    ap.add_argument("--tune-exclude", nargs="*", default=[],
+                    help="这些 jsonl 中出现过的 query 不进入 tune（例如各实验的训练集）")
+    ap.add_argument("--only-tune", action="store_true", help="只写出 tune")
     ap.add_argument("--only-test", action="store_true",
                     help="只写出 test（例如扩大测试集时），train/val 照常抽样用于不重叠校验但不写出")
     args = ap.parse_args()
@@ -157,6 +162,15 @@ def main():
              "pool": {"train_rows": len(train_pool), "test_rows": len(test_pool),
                       "train_label_share": train_pool["esci_label"].value_counts(normalize=True).round(4).to_dict()}}
     parts = (("test", test_df),) if args.only_test else (("train", train_df), ("val", val_df), ("test", test_df))
+    if args.tune_queries:
+        from ecomq.data.io import read_jsonl
+        excluded = set(train_q) | set(val_q)
+        for path in args.tune_exclude:
+            excluded |= {r["meta"]["query_id"] for r in read_jsonl(path)}
+        tune_df, tune_q = sample_queries(train_pool, args.tune_queries, args.per_query, args.seed + 4, exclude=excluded)
+        assert not (tune_q & excluded) and not (tune_q & test_q), "tune overlaps train/val/test"
+        stats["tune_excluded_queries"] = len(excluded)
+        parts = (("tune", tune_df),) if args.only_tune else parts + (("tune", tune_df),)
     for name, part in parts:
         records = [to_record(r) for r in part.to_dict("records")]
         bad = [r["id"] for r in records if validate_record(r)]
@@ -165,7 +179,7 @@ def main():
         stats[name] = label_stats(records)
         print(name, json.dumps(stats[name]))
 
-    if not args.only_test:
+    if not (args.only_test or args.only_tune):
         export(out / "splits", out / "llamafactory", prefix="esci_rel")
     (out / "stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     print(f"done -> {out}")

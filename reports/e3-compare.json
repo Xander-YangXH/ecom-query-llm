@@ -1,0 +1,129 @@
+{
+  "n_queries": 2500,
+  "n_examples": 10000,
+  "n_boot": 1000,
+  "systems": {
+    "e2a": {
+      "accuracy": 0.7385,
+      "accuracy_ci95": [
+        0.7269,
+        0.7501
+      ],
+      "macro_f1": 0.5348,
+      "macro_f1_ci95": [
+        0.5113,
+        0.5575
+      ]
+    },
+    "e2a_prior": {
+      "accuracy": 0.73,
+      "accuracy_ci95": [
+        0.7188,
+        0.7413
+      ],
+      "macro_f1": 0.5493,
+      "macro_f1_ci95": [
+        0.5267,
+        0.5722
+      ]
+    },
+    "e2b": {
+      "accuracy": 0.7205,
+      "accuracy_ci95": [
+        0.7088,
+        0.7322
+      ],
+      "macro_f1": 0.5448,
+      "macro_f1_ci95": [
+        0.5265,
+        0.5626
+      ]
+    },
+    "e2b_prior": {
+      "accuracy": 0.7252,
+      "accuracy_ci95": [
+        0.714,
+        0.7357
+      ],
+      "macro_f1": 0.5477,
+      "macro_f1_ci95": [
+        0.5233,
+        0.5689
+      ]
+    }
+  },
+  "diffs": {
+    "e2a_prior - e2a": {
+      "accuracy": -0.0085,
+      "accuracy_ci95": [
+        -0.0145,
+        -0.0032
+      ],
+      "macro_f1": 0.0145,
+      "macro_f1_ci95": [
+        0.0047,
+        0.0253
+      ]
+    },
+    "e2b - e2a": {
+      "accuracy": -0.018,
+      "accuracy_ci95": [
+        -0.025,
+        -0.0107
+      ],
+      "macro_f1": 0.01,
+      "macro_f1_ci95": [
+        -0.0095,
+        0.0303
+      ]
+    },
+    "e2b_prior - e2a": {
+      "accuracy": -0.0133,
+      "accuracy_ci95": [
+        -0.0205,
+        -0.0067
+      ],
+      "macro_f1": 0.0129,
+      "macro_f1_ci95": [
+        -0.0023,
+        0.0275
+      ]
+    },
+    "e2b - e2a_prior": {
+      "accuracy": -0.0095,
+      "accuracy_ci95": [
+        -0.0164,
+        -0.0016
+      ],
+      "macro_f1": -0.0045,
+      "macro_f1_ci95": [
+        -0.0215,
+        0.0151
+      ]
+    },
+    "e2b_prior - e2a_prior": {
+      "accuracy": -0.0048,
+      "accuracy_ci95": [
+        -0.0104,
+        0.0011
+      ],
+      "macro_f1": -0.0016,
+      "macro_f1_ci95": [
+        -0.0187,
+        0.0141
+      ]
+    },
+    "e2b_prior - e2b": {
+      "accuracy": 0.0047,
+      "accuracy_ci95": [
+        -0.0028,
+        0.0112
+      ],
+      "macro_f1": 0.0029,
+      "macro_f1_ci95": [
+        -0.0168,
+        0.0191
+      ]
+    }
+  }
+}

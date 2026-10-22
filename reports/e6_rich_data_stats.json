@@ -1,0 +1,37 @@
+{
+  "source": {
+    "train": "~/ecomq/data/e1_relevance/splits/train.jsonl",
+    "val": "~/ecomq/data/e1_relevance/splits/val.jsonl",
+    "tune": "~/ecomq/data/esci_tune/splits/tune.jsonl",
+    "test": "~/ecomq/data/esci_test2500/splits/test.jsonl"
+  },
+  "bullets_max_chars": 300,
+  "train": {
+    "n": 20000,
+    "brand": 0.9467,
+    "color": 0.6905,
+    "bullets": 0.8661,
+    "any": 0.9501
+  },
+  "val": {
+    "n": 1000,
+    "brand": 0.958,
+    "color": 0.75,
+    "bullets": 0.885,
+    "any": 0.96
+  },
+  "tune": {
+    "n": 6000,
+    "brand": 0.9533,
+    "color": 0.6963,
+    "bullets": 0.875,
+    "any": 0.957
+  },
+  "test": {
+    "n": 10000,
+    "brand": 0.9453,
+    "color": 0.6861,
+    "bullets": 0.8688,
+    "any": 0.9489
+  }
+}

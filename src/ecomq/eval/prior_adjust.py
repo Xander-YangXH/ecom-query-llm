@@ -85,6 +85,7 @@ def main():
     ap.add_argument("--curve-class", default="irrelevant")
     ap.add_argument("--report", required=True)
     ap.add_argument("--preds-out", required=True)
+    ap.add_argument("--raw-preds-out", help="同时写出不加偏置（直接取概率最大）的预测，便于 bootstrap 对比调整前后")
     args = ap.parse_args()
 
     _, Lt, gt = load(args.tune_recs, args.tune_scores)
@@ -108,6 +109,8 @@ def main():
 
     Path(args.report).write_text(json.dumps(report, indent=2), encoding="utf-8")
     write_jsonl(args.preds_out, [{"id": r["id"], "output": o} for r, o in zip(test_recs, as_outputs(adj_pred))])
+    if args.raw_preds_out:
+        write_jsonl(args.raw_preds_out, [{"id": r["id"], "output": o} for r, o in zip(test_recs, as_outputs(raw_pred))])
     t = report["test_adjusted"]
     print(json.dumps({"bias": report["bias"], "tune": report["tune"],
                       "test_before": {k: report["test_argmax_no_bias"][k] for k in ("accuracy", "macro_f1")},

@@ -20,7 +20,7 @@ from pathlib import Path
 
 from ecomq.data.io import write_jsonl
 from ecomq.data.to_alpaca import export
-from ecomq.paths import DATA_ROOT
+from ecomq.paths import DATA_ROOT, redact
 from ecomq.schema import ESCI_TO_RELEVANCE, validate_record
 
 TITLE_MAX_CHARS = 200
@@ -188,7 +188,7 @@ def main():
         grown, grown_q = grow_train(list(read_jsonl(args.grow_from)), train_pool, args.train_queries,
                                     args.per_query, args.seed + 5, excluded)
         assert not (grown_q & excluded), "grown train overlaps val/test/excluded queries"
-        stats["grow_from"] = args.grow_from
+        stats["grow_from"] = redact(args.grow_from)
         stats["grow_excluded_queries"] = len(excluded)
     if args.tune_queries:
         from ecomq.data.io import read_jsonl

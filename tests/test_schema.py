@@ -75,3 +75,11 @@ def test_product_fields_render_only_when_present():
     rich = format_input("q", "t", {"brand": "Sony", "bullets": "a | b"})
     assert rich == base + "\nbrand: Sony\nproduct details: a | b"
     assert "color" not in rich                          # 缺失字段不出现，不写 unknown
+
+
+def test_redact_hides_machine_paths():
+    from ecomq.paths import DATA_ROOT, redact
+
+    assert redact(DATA_ROOT / "e1_relevance" / "splits" / "train.jsonl") == "$DATA_ROOT/e1_relevance/splits/train.jsonl"
+    assert redact("/private/tmp/xyz/abc/e4-20k-raw.jsonl") == "e4-20k-raw.jsonl"
+    assert redact("/home/someone/other/file.jsonl") == "file.jsonl"

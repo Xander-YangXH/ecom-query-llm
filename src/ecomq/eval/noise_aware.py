@@ -16,6 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from ecomq.data.io import read_jsonl
+from ecomq.paths import redact
 from ecomq.schema import RELEVANCE, parse_output
 
 IDX = {lab: i for i, lab in enumerate(RELEVANCE)}  # exact=0, substitute=1, complement=2, irrelevant=3
@@ -147,7 +148,7 @@ def main():
         "n": int(len(gold)),
         "disputed": {"n": int(disputed.sum()), "share": round(float(disputed.mean()), 4),
                      "gold_E": int((disputed & (gold == 0)).sum()), "gold_S": int((disputed & (gold == 1)).sum()),
-                     "committee": args.committee, "k": args.k or len(committee)},
+                     "committee": [redact(p) for p in args.committee], "k": args.k or len(committee)},
         "metrics": summarize(point, draws, pairs, sets),
     }
     if args.audit_key and args.audit_labels:

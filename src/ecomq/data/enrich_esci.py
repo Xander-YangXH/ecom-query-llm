@@ -15,7 +15,7 @@ from pathlib import Path
 
 from ecomq.data.io import read_jsonl, write_jsonl
 from ecomq.data.to_alpaca import export
-from ecomq.paths import DATA_ROOT
+from ecomq.paths import DATA_ROOT, redact
 
 BULLETS_MAX_CHARS = 300
 SHORT_MAX_CHARS = 60
@@ -97,7 +97,7 @@ def main():
               for row in prod.to_dict("records")}
 
     out = Path(args.out_dir)
-    stats = {"source": inputs, "bullets_max_chars": BULLETS_MAX_CHARS}
+    stats = {"source": {k: redact(v) for k, v in inputs.items()}, "bullets_max_chars": BULLETS_MAX_CHARS}
     for name, recs in data.items():
         rich = enrich(recs, lookup)
         write_jsonl(out / "splits" / f"{name}.jsonl", rich)

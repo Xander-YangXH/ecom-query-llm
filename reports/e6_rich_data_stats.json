@@ -1,9 +1,9 @@
 {
   "source": {
-    "train": "~/ecomq/data/e1_relevance/splits/train.jsonl",
-    "val": "~/ecomq/data/e1_relevance/splits/val.jsonl",
-    "tune": "~/ecomq/data/esci_tune/splits/tune.jsonl",
-    "test": "~/ecomq/data/esci_test2500/splits/test.jsonl"
+    "train": "$DATA_ROOT/e1_relevance/splits/train.jsonl",
+    "val": "$DATA_ROOT/e1_relevance/splits/val.jsonl",
+    "tune": "$DATA_ROOT/esci_tune/splits/tune.jsonl",
+    "test": "$DATA_ROOT/esci_test2500/splits/test.jsonl"
   },
   "bullets_max_chars": 300,
   "train": {

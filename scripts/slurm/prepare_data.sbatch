@@ -24,8 +24,9 @@ conda activate ecomq
 export PYTHONPATH=src
 # 耗时用 SECONDS 记录；峰值内存事后用 sacct -j <作业号> -o MaxRSS 查看
 START=$SECONDS
-python -m ecomq.data.prepare_esci ${PREP_ARGS:-}
-echo "prepare_esci: $((SECONDS - START))s"
+# PREP_MODULE 可换成其他数据处理模块（例如 ecomq.data.enrich_esci），默认 prepare_esci
+python -m "${PREP_MODULE:-ecomq.data.prepare_esci}" ${PREP_ARGS:-}
+echo "${PREP_MODULE:-ecomq.data.prepare_esci}: $((SECONDS - START))s"
 if [ "${SKIP_INSPECT:-0}" != "1" ]; then
   START=$SECONDS
   python -m ecomq.data.inspect_ecinstruct

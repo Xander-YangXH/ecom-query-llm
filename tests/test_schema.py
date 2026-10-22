@@ -64,3 +64,14 @@ def test_parse_output_handles_code_fence_and_garbage():
     assert parse_output("not json", "relevance") is None
     assert parse_output('{"intent": "inquiry"}', "full") is None
     assert parse_output('{"label": "exact"}', "relevance") is None
+
+
+def test_product_fields_render_only_when_present():
+    from ecomq.schema import format_input
+
+    base = format_input("q", "t")
+    assert format_input("q", "t", None) == base
+    assert format_input("q", "t", {}) == base          # 旧数据（没有 product）渲染结果不变
+    rich = format_input("q", "t", {"brand": "Sony", "bullets": "a | b"})
+    assert rich == base + "\nbrand: Sony\nproduct details: a | b"
+    assert "color" not in rich                          # 缺失字段不出现，不写 unknown

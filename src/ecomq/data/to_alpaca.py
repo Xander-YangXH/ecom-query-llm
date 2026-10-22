@@ -15,7 +15,7 @@ def convert(rec: dict) -> dict:
     task = task_of(rec)
     return {
         "instruction": instruction_for(task),
-        "input": format_input(rec["query"], rec.get("title")),
+        "input": format_input(rec["query"], rec.get("title"), rec.get("product")),
         "output": format_output(rec["label"], task),
     }
 

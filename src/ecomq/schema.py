@@ -49,17 +49,24 @@ def instruction_for(task: str) -> str:
     return INSTRUCTIONS[task]
 
 
-def format_input(query: str, title: str | None = None) -> str:
+# 商品附加字段（E6，DEVLOG S16）：记录里的 rec["product"] = {"brand", "color", "bullets"}，缺失的键不出现。
+PRODUCT_FIELDS = (("brand", "brand"), ("color", "color"), ("bullets", "product details"))
+
+
+def format_input(query: str, title: str | None = None, product: dict | None = None) -> str:
     text = f"query: {query}"
     if title:
         text += f"\nproduct title: {title}"
+    for key, label in PRODUCT_FIELDS if product else ():
+        if product.get(key):
+            text += f"\n{label}: {product[key]}"
     return text
 
 
-def build_user_prompt(query: str, title: str | None = None, task: str = "full") -> str:
+def build_user_prompt(query: str, title: str | None = None, task: str = "full", product: dict | None = None) -> str:
     """推理时的完整用户消息。必须与 LLaMA-Factory 对 Alpaca 样本的拼接一致：
     instruction 与 input 用换行连接，放在同一个 user 轮次里（不使用 system），见 DEVLOG P1。"""
-    return f"{instruction_for(task)}\n{format_input(query, title)}"
+    return f"{instruction_for(task)}\n{format_input(query, title, product)}"
 
 
 def format_output(label: dict, task: str = "full") -> str:

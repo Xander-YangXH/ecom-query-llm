@@ -19,7 +19,7 @@ def test_inference_prompt_matches_training_prompt():
     """LLaMA-Factory 把 instruction 与 input 用换行拼成同一个 user 消息；推理必须一致。"""
     for rec in read_jsonl(SAMPLE):
         row = convert(rec)
-        assert build_user_prompt(rec["query"], rec.get("title"), task_of(rec)) == row["instruction"] + "\n" + row["input"]
+        assert build_user_prompt(rec["query"], rec.get("title"), task_of(rec), rec.get("product")) == row["instruction"] + "\n" + row["input"]
 
 
 def test_export_writes_dataset_info(tmp_path):

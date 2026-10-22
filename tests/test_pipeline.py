@@ -87,3 +87,17 @@ def test_bootstrap_identical_systems_have_zero_diff():
     assert out["systems"]["a"]["accuracy"] == 0.5
     assert out["diffs"]["b - a"]["accuracy"] == 0.0
     assert out["diffs"]["b - a"]["macro_f1_ci95"] == [0.0, 0.0]
+
+
+def test_seed_sets_average_and_worst_vs_best():
+    from ecomq.eval.compare import _draws, seed_sets
+
+    labels = ["exact", "substitute", "complement", "irrelevant"]
+    groups = {f"q{i}": [(labels[i % 4], {"a1": labels[i % 4], "a2": "exact", "b1": labels[i % 4], "b2": labels[i % 4]})]
+              for i in range(40)}
+    point, draws = _draws(groups, ["a1", "a2", "b1", "b2"], n_boot=30, seed=0)
+    out = seed_sets(point, draws, {"A": ["a1", "a2"], "B": ["b1", "b2"]})
+    assert out["sets"]["B"]["accuracy_mean"] == 1.0
+    assert out["sets"]["A"]["accuracy_range"] == [0.25, 1.0]
+    assert out["set_diffs"]["B - A"]["accuracy"] == round(1.0 - (1.0 + 0.25) / 2, 4)
+    assert out["set_diffs"]["B - A"]["worst_b_minus_best_a_macro_f1"] == 0.0

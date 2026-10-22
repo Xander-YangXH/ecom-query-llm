@@ -27,7 +27,7 @@ def main():
     from vllm.lora.request import LoRARequest
 
     recs = list(read_jsonl(args.test))
-    convs = [[{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), task_of(r))}] for r in recs]
+    convs = [[{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), task_of(r), r.get("product"))}] for r in recs]
     llm = LLM(
         model=args.model,
         enable_lora=bool(args.lora),

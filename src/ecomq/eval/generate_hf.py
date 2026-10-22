@@ -47,7 +47,7 @@ def main():
     recs = list(read_jsonl(args.test))
     prompts = [
         tok.apply_chat_template(
-            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), task_of(r))}],
+            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), task_of(r), r.get("product"))}],
             tokenize=False,
             add_generation_prompt=True,
         )

@@ -43,7 +43,7 @@ def main():
     for i, r in enumerate(recs):
         assert task_of(r) == "relevance"
         prompt = tok.apply_chat_template(
-            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), "relevance")}],
+            [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), "relevance", r.get("product"))}],
             tokenize=False, add_generation_prompt=True)
         p_ids = tok(prompt, add_special_tokens=False)["input_ids"]
         for lab in RELEVANCE:

@@ -15,3 +15,4 @@
 {"id": "r-002", "task": "relevance", "group": "r-hdmi", "query": "hdmi cable 10 ft", "title": "Amazon Basics High-Speed HDMI Cable, 6 Feet", "label": {"relevance": "substitute"}, "meta": {"source": "manual"}}
 {"id": "r-003", "task": "relevance", "group": "r-hdmi", "query": "hdmi cable 10 ft", "title": "HDMI Cable Ties Velcro Organizer, 20 Pack", "label": {"relevance": "complement"}, "meta": {"source": "manual"}}
 {"id": "r-004", "task": "relevance", "group": "r-hdmi", "query": "hdmi cable 10 ft", "title": "Organic Green Tea Bags, 100 Count", "label": {"relevance": "irrelevant"}, "meta": {"source": "manual"}}
+{"id": "r-005", "task": "relevance", "group": "r-earbuds", "query": "sony wireless earbuds black", "title": "WF-1000XM5 Truly Wireless Noise Canceling Earbuds", "product": {"brand": "Sony", "color": "Black", "bullets": "Industry-leading noise cancellation | Up to 24 hours battery with case"}, "label": {"relevance": "exact"}, "meta": {"source": "manual"}}

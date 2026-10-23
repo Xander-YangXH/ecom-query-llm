@@ -1,0 +1,242 @@
+{
+  "note": "one-vs-rest ranking metrics on raw log p (class c: log p(c); E vs S: log p(E) - log p(S); relevant: log(p(E)+p(S))); invariant to per-class bias; seed mean and range",
+  "test": "test.jsonl",
+  "results": {
+    "title": {
+      "complement": {
+        "auc": {
+          "mean": 0.9128,
+          "range": [
+            0.9104,
+            0.9165
+          ]
+        },
+        "ap": {
+          "mean": 0.3224,
+          "range": [
+            0.3059,
+            0.3394
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8737,
+          "range": [
+            0.8713,
+            0.8765
+          ]
+        },
+        "ap": {
+          "mean": 0.4725,
+          "range": [
+            0.4695,
+            0.4754
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8762,
+          "range": [
+            0.8727,
+            0.879
+          ]
+        },
+        "ap": {
+          "mean": 0.9788,
+          "range": [
+            0.9781,
+            0.9794
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8474,
+          "range": [
+            0.8462,
+            0.8481
+          ]
+        }
+      }
+    },
+    "e7": {
+      "complement": {
+        "auc": {
+          "mean": 0.9194,
+          "range": [
+            0.9112,
+            0.9243
+          ]
+        },
+        "ap": {
+          "mean": 0.3529,
+          "range": [
+            0.3429,
+            0.3675
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8786,
+          "range": [
+            0.8734,
+            0.8812
+          ]
+        },
+        "ap": {
+          "mean": 0.4779,
+          "range": [
+            0.4751,
+            0.4834
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8824,
+          "range": [
+            0.8762,
+            0.8858
+          ]
+        },
+        "ap": {
+          "mean": 0.9807,
+          "range": [
+            0.9792,
+            0.9815
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.843,
+          "range": [
+            0.8391,
+            0.8468
+          ]
+        }
+      }
+    },
+    "e7a": {
+      "complement": {
+        "auc": {
+          "mean": 0.9187,
+          "range": [
+            0.9171,
+            0.9196
+          ]
+        },
+        "ap": {
+          "mean": 0.3454,
+          "range": [
+            0.3405,
+            0.3513
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8771,
+          "range": [
+            0.8761,
+            0.8788
+          ]
+        },
+        "ap": {
+          "mean": 0.4678,
+          "range": [
+            0.4652,
+            0.4723
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8778,
+          "range": [
+            0.8762,
+            0.8795
+          ]
+        },
+        "ap": {
+          "mean": 0.9799,
+          "range": [
+            0.9795,
+            0.9802
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8388,
+          "range": [
+            0.8379,
+            0.8399
+          ]
+        }
+      }
+    },
+    "e7b": {
+      "complement": {
+        "auc": {
+          "mean": 0.9138,
+          "range": [
+            0.9127,
+            0.916
+          ]
+        },
+        "ap": {
+          "mean": 0.3301,
+          "range": [
+            0.3236,
+            0.3415
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8743,
+          "range": [
+            0.8734,
+            0.8757
+          ]
+        },
+        "ap": {
+          "mean": 0.4733,
+          "range": [
+            0.4701,
+            0.4783
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8782,
+          "range": [
+            0.8762,
+            0.8798
+          ]
+        },
+        "ap": {
+          "mean": 0.9799,
+          "range": [
+            0.9797,
+            0.9803
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8497,
+          "range": [
+            0.8483,
+            0.8519
+          ]
+        }
+      }
+    }
+  }
+}

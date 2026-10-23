@@ -8,6 +8,7 @@
                    同一输入的目标变成 E、S 各一半，交叉熵上等价于 50/50 的软标签（代价：这些样本权重变为 2 倍）。
                 2) 追加 C/I：从官方 train 池中抽取未使用过的 complement / irrelevant 真实样本追加进去，
                    排除验证集、调参集、测试集的全部 query。
+                --assert-subset-of：断言本次追加的样本是另一个已构造数据集追加样本的子集（E8 嵌套曲线，DEVLOG S20）。
 """
 import argparse
 import json
@@ -99,6 +100,8 @@ def main():
     e.add_argument("--exclude-queries-from", nargs="*", default=[])
     e.add_argument("--raw-dir", default=str(DATA_ROOT / "raw" / "esci"))
     e.add_argument("--seed", type=int, default=47)
+    e.add_argument("--assert-subset-of", nargs="*", default=[],
+                   help="其他 e7-data 输出目录；本次追加的样本必须都在它们各自的追加样本里")
     e.add_argument("--out-dir", required=True)
     args = ap.parse_args()
     out = Path(args.out_dir)
@@ -129,6 +132,12 @@ def main():
     counts = {TO_ESCI[name]: int(n) for name, n in (x.split("=") for x in args.add.split(","))}
     extra = extra_class_rows(train_pool, counts, exclude_q, used_examples, args.seed)
     assert not ({r["meta"]["query_id"] for r in extra} & exclude_q)
+    base_ids = {r["id"] for r in base}
+    for other in args.assert_subset_of:
+        bigger = {r["id"] for r in read_jsonl(Path(other) / "splits" / "train.jsonl")
+                  if r["id"] not in base_ids and not r["id"].endswith("-soft")}
+        missing = {r["id"] for r in extra} - bigger
+        assert not missing, f"{len(missing)} extra rows not in {Path(other).name}"
 
     train = base + dups + extra
     random.Random(args.seed).shuffle(train)
@@ -139,6 +148,7 @@ def main():
     stats = {
         "base": len(base), "soft_duplicates": len(dups), "extra": len(extra), "total": len(train),
         "soft_share_of_base_es": round(len(dups) / gold_es, 4), "threshold": args.threshold,
+        "add": args.add, "nested_in": [Path(x).name for x in args.assert_subset_of],
         "soft_by_original_label": dict(Counter(d["meta"]["soft_from"] for d in dups)),
         "labels": {k: {"count": v, "share": round(v / len(train), 4)}
                    for k, v in Counter(r["label"]["relevance"] for r in train).items()},

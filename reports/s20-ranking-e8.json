@@ -1,0 +1,301 @@
+{
+  "note": "one-vs-rest ranking metrics on raw log p (class c: log p(c); E vs S: log p(E) - log p(S); relevant: log(p(E)+p(S))); invariant to per-class bias; seed mean and range",
+  "test": "test.jsonl",
+  "results": {
+    "title": {
+      "complement": {
+        "auc": {
+          "mean": 0.9128,
+          "range": [
+            0.9104,
+            0.9165
+          ]
+        },
+        "ap": {
+          "mean": 0.3224,
+          "range": [
+            0.3059,
+            0.3394
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8737,
+          "range": [
+            0.8713,
+            0.8765
+          ]
+        },
+        "ap": {
+          "mean": 0.4725,
+          "range": [
+            0.4695,
+            0.4754
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8762,
+          "range": [
+            0.8727,
+            0.879
+          ]
+        },
+        "ap": {
+          "mean": 0.9788,
+          "range": [
+            0.9781,
+            0.9794
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8474,
+          "range": [
+            0.8462,
+            0.8481
+          ]
+        }
+      }
+    },
+    "e7a": {
+      "complement": {
+        "auc": {
+          "mean": 0.9187,
+          "range": [
+            0.9171,
+            0.9196
+          ]
+        },
+        "ap": {
+          "mean": 0.3454,
+          "range": [
+            0.3405,
+            0.3513
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8771,
+          "range": [
+            0.8761,
+            0.8788
+          ]
+        },
+        "ap": {
+          "mean": 0.4678,
+          "range": [
+            0.4652,
+            0.4723
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8778,
+          "range": [
+            0.8762,
+            0.8795
+          ]
+        },
+        "ap": {
+          "mean": 0.9799,
+          "range": [
+            0.9795,
+            0.9802
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8388,
+          "range": [
+            0.8379,
+            0.8399
+          ]
+        }
+      }
+    },
+    "c1500": {
+      "complement": {
+        "auc": {
+          "mean": 0.9165,
+          "range": [
+            0.9154,
+            0.9184
+          ]
+        },
+        "ap": {
+          "mean": 0.343,
+          "range": [
+            0.3315,
+            0.3522
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.872,
+          "range": [
+            0.8713,
+            0.8726
+          ]
+        },
+        "ap": {
+          "mean": 0.4618,
+          "range": [
+            0.4596,
+            0.4632
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8715,
+          "range": [
+            0.8685,
+            0.8736
+          ]
+        },
+        "ap": {
+          "mean": 0.9781,
+          "range": [
+            0.9773,
+            0.9789
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8469,
+          "range": [
+            0.8457,
+            0.8483
+          ]
+        }
+      }
+    },
+    "c3000": {
+      "complement": {
+        "auc": {
+          "mean": 0.9179,
+          "range": [
+            0.915,
+            0.9207
+          ]
+        },
+        "ap": {
+          "mean": 0.3486,
+          "range": [
+            0.3422,
+            0.3573
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8667,
+          "range": [
+            0.8612,
+            0.8715
+          ]
+        },
+        "ap": {
+          "mean": 0.4491,
+          "range": [
+            0.4477,
+            0.4516
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8699,
+          "range": [
+            0.8693,
+            0.8706
+          ]
+        },
+        "ap": {
+          "mean": 0.9775,
+          "range": [
+            0.9769,
+            0.9779
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8443,
+          "range": [
+            0.8392,
+            0.8494
+          ]
+        }
+      }
+    },
+    "c6000": {
+      "complement": {
+        "auc": {
+          "mean": 0.9196,
+          "range": [
+            0.9191,
+            0.9206
+          ]
+        },
+        "ap": {
+          "mean": 0.3261,
+          "range": [
+            0.3156,
+            0.3366
+          ]
+        }
+      },
+      "irrelevant": {
+        "auc": {
+          "mean": 0.8613,
+          "range": [
+            0.8571,
+            0.8669
+          ]
+        },
+        "ap": {
+          "mean": 0.4341,
+          "range": [
+            0.4311,
+            0.4401
+          ]
+        }
+      },
+      "relevant_vs_ci": {
+        "auc": {
+          "mean": 0.8623,
+          "range": [
+            0.8541,
+            0.8695
+          ]
+        },
+        "ap": {
+          "mean": 0.9767,
+          "range": [
+            0.9747,
+            0.9783
+          ]
+        }
+      },
+      "exact_vs_sub": {
+        "auc": {
+          "mean": 0.8367,
+          "range": [
+            0.8283,
+            0.8414
+          ]
+        }
+      }
+    }
+  }
+}

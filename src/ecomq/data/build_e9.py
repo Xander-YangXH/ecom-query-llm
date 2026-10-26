@@ -48,8 +48,18 @@ def token_lengths(rows: list[dict], tokenizer_path: str) -> list[int]:
     for r in rows:
         msgs = [{"role": "user", "content": build_user_prompt(r["query"], r.get("title"), r["task"], r.get("product"))},
                 {"role": "assistant", "content": format_output(r["label"], r["task"])}]
-        out.append(len(tok.apply_chat_template(msgs, tokenize=True)))
+        # 先渲染成文本再分词：transformers 5 中 apply_chat_template(tokenize=True) 返回的是字典，
+        # 对它取 len 得到的是键的个数（2），第一版的长度检查因此形同虚设（DEVLOG S23 P18）
+        text = tok.apply_chat_template(msgs, tokenize=False)
+        out.append(len(tok(text, add_special_tokens=False)["input_ids"]))
+    assert min(out) > 50, f"implausible token lengths (min={min(out)}), check the tokenizer call"
     return out
+
+
+def length_stats(rows: list[dict], tokenizer_path: str, cutoff_len: int) -> dict:
+    lens = sorted(token_lengths(rows, tokenizer_path))
+    return {"max": lens[-1], "p99": lens[int(0.99 * (len(lens) - 1))], "mean": round(sum(lens) / len(lens), 1),
+            "over_cutoff": sum(n > cutoff_len for n in lens), "cutoff_len": cutoff_len}
 
 
 def main():
@@ -59,16 +69,22 @@ def main():
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--tokenizer", help="模型目录；给出时检查 token 长度")
     ap.add_argument("--cutoff-len", type=int, default=448)
+    ap.add_argument("--lengths-only", action="store_true",
+                    help="只对 --out-dir 下已有的 splits 重新统计 token 长度（不重建数据），结果写入 lengths.json")
     args = ap.parse_args()
     out = Path(args.out_dir)
+    if args.lengths_only:
+        res = {name: length_stats(list(read_jsonl(out / "splits" / f"{name}.jsonl")), args.tokenizer, args.cutoff_len)
+               for name in ("train", "val")}
+        (out / "lengths.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
+        print(json.dumps(res))
+        return
 
     stats = {}
     for name, path in (("train", args.train), ("val", args.val)):
         kept, st = select(list(read_jsonl(path)))
         if args.tokenizer:
-            lens = sorted(token_lengths(kept, args.tokenizer))
-            st["tokens"] = {"max": lens[-1], "p99": lens[int(0.99 * (len(lens) - 1))],
-                            "over_cutoff": sum(n > args.cutoff_len for n in lens), "cutoff_len": args.cutoff_len}
+            st["tokens"] = length_stats(kept, args.tokenizer, args.cutoff_len)
             assert st["tokens"]["over_cutoff"] == 0, f"{name}: {st['tokens']['over_cutoff']} rows exceed cutoff_len"
         write_jsonl(out / "splits" / f"{name}.jsonl", kept)
         stats[name] = st

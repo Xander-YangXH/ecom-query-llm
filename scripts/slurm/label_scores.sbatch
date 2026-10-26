@@ -2,6 +2,8 @@
 # 计算 relevance 四个候选标签的对数概率（推理时先验调整用，见 DEVLOG S12）。
 #   sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=e2a-1ep-best,TEST=<jsonl>,NAME=<结果名>,LOAD_4BIT=1 scripts/slurm/label_scores.sbatch
 # 输出：$OUTPUT_ROOT/label_scores/$NAME.jsonl
+# COT=1：relevance_cot 模型（E9a），先生成理由再以理由为条件打分（ecomq.eval.score_labels_cot）；
+#   生成较慢，提交时用 --time=03:00:00 覆盖默认时限。
 #SBATCH --partition=MGPU-TC2
 #SBATCH --qos=normal
 #SBATCH --nodes=1
@@ -28,5 +30,9 @@ ARGS=(--model "$MODEL_ROOT/$MODEL" --lora "$OUTPUT_ROOT/$RUN" --test "$TEST"
       --output "$OUTPUT_ROOT/label_scores/$NAME.jsonl" --batch-size "${BATCH_SIZE:-32}")
 [ -n "${LOAD_4BIT:-}" ] && ARGS+=(--load-4bit)
 START=$SECONDS
-PYTHONPATH=src python -m ecomq.eval.score_labels "${ARGS[@]}"
+if [ -n "${COT:-}" ]; then
+  PYTHONPATH=src python -m ecomq.eval.score_labels_cot "${ARGS[@]}" --max-new-tokens "${MAX_NEW_TOKENS:-96}"
+else
+  PYTHONPATH=src python -m ecomq.eval.score_labels "${ARGS[@]}"
+fi
 echo "score_labels: $((SECONDS - START))s"

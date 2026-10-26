@@ -14,9 +14,6 @@ from ecomq.schema import RELEVANCE, build_user_prompt, format_output, task_of
 
 def label_logps(model, tok, prompts: list[str], batch_size: int = 32) -> list[dict[str, float]]:
     """prompts 是已套好对话模板的完整提示（以 assistant 开头结束）；返回每条提示下 4 个候选回复的 log p。"""
-    import torch
-
-    pad_id = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
     items = []  # (提示下标, 标签, 完整 token 序列, 回复起始位置)
     for i, prompt in enumerate(prompts):
         p_ids = tok(prompt, add_special_tokens=False)["input_ids"]
@@ -25,9 +22,17 @@ def label_logps(model, tok, prompts: list[str], batch_size: int = 32) -> list[di
             full = tok(text, add_special_tokens=False)["input_ids"]
             assert full[: len(p_ids)] == p_ids, "prompt tokens changed after appending the response"
             items.append((i, lab, full, len(p_ids)))
+    return score_items(model, tok, items, len(prompts), batch_size)
 
+
+def score_items(model, tok, items: list[tuple], n: int, batch_size: int) -> list[dict[str, float]]:
+    """items 为 (提示下标, 标签, 完整 token 序列, 计分起始位置)；返回 n 个 {标签: 起始位置之后 token 的 log p 之和}。
+    使用右侧填充：Qwen2 前向时按位置序号计算位置编码，左侧填充会改变位置、影响 logits。"""
+    import torch
+
+    pad_id = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
     order = sorted(range(len(items)), key=lambda k: len(items[k][2]))  # 按长度分批，减少填充
-    scores = [dict() for _ in prompts]
+    scores = [dict() for _ in range(n)]
     for s in range(0, len(order), batch_size):
         batch = [items[k] for k in order[s : s + batch_size]]
         width = max(len(b[2]) for b in batch)
@@ -39,12 +44,11 @@ def label_logps(model, tok, prompts: list[str], batch_size: int = 32) -> list[di
         with torch.no_grad():
             logits = model(input_ids=ids.to(model.device), attention_mask=att.to(model.device)).logits
         for j, (i, lab, full, start) in enumerate(batch):
-            # 位置 t 的 logits 预测第 t+1 个 token；回复 token 位于 [start, len(full))
+            # 位置 t 的 logits 预测第 t+1 个 token；计分的 token 位于 [start, len(full))
             lp = torch.log_softmax(logits[j, start - 1 : len(full) - 1].float(), dim=-1)
             target = ids[j, start : len(full)].to(lp.device)
             scores[i][lab] = lp.gather(-1, target.unsqueeze(-1)).sum().item()
     return scores
-
 
 def main():
     ap = argparse.ArgumentParser()

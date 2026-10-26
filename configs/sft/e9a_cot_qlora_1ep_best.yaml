@@ -1,0 +1,43 @@
+# E9a（DEVLOG S21–S23）：先写理由再给标签（task=relevance_cot），其余与 E2a 完全相同。
+# - 数据：DATASET_DIR=$DATA_ROOT/e9a_cot/llamafactory（build_e9 生成；dataset 名与 E2a 相同）。
+# - cutoff_len 384 → 448：指令多一句、回复多一句理由；build_e9 用同一对话模板检查过没有样本超过 448。
+# - 验证集也带理由，按验证损失选 checkpoint 的方式不变。
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+quantization_bit: 4
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+
+dataset: esci_rel_train
+eval_dataset: esci_rel_val
+template: qwen
+cutoff_len: 448
+overwrite_cache: true
+preprocessing_num_workers: 4
+
+output_dir: saves/e9a
+logging_steps: 10
+plot_loss: true
+
+per_device_train_batch_size: 16
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-4
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
+
+per_device_eval_batch_size: 16
+eval_strategy: steps
+eval_steps: 100
+save_strategy: steps
+save_steps: 100
+save_total_limit: 2
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+report_to: none

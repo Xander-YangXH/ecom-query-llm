@@ -5,6 +5,9 @@
 # 输出：$OUTPUT_ROOT/rationales/$NAME.{jsonl,report.json,review.md}
 # VERIFY_SCORES=1：先用重构后的 score_labels 对 2500 query 测试集的前 200 条重新打分（E2a 适配器），
 #   与已有的 label_scores/e2a-test.jsonl 比对，确认把打分循环抽成 label_logps 后结果不变。
+#   再设 VERIFY_OLD=<重构前的 score_labels.py>：在同样的 200 条上运行旧代码，要求与新代码逐值相同
+#   （与已有文件比对时，批次组成不同会带来很小的数值差异，只有同输入对比才能确认逻辑完全一致）。
+# HONEST=1：--honest-first（先让模型不看标签自己判断，判对的采用其理由）。
 #SBATCH --partition=MGPU-TC2
 #SBATCH --qos=normal
 #SBATCH --nodes=1
@@ -42,11 +45,22 @@ diff = max(abs(new[i][c] - old[i][c]) for i in new for c in new[i])
 same = sum(max(new[i], key=new[i].get) == max(old[i], key=old[i].get) for i in new)
 print(f"verify_scores: n={len(new)} max_abs_diff={diff:.4f} argmax_agree={same}/{len(new)}")
 PY
+  if [ -n "${VERIFY_OLD:-}" ]; then
+    PYTHONPATH=src python "$VERIFY_OLD" --model "$MODEL_DIR" --lora "$OUTPUT_ROOT/e2a-1ep-best" \
+      --test "$TMP/test200.jsonl" --output "$TMP/old.jsonl" --batch-size 32 --load-4bit
+    python - "$TMP/new.jsonl" "$TMP/old.jsonl" <<'PY'
+import json, sys
+new = {r["id"]: r["logp"] for r in map(json.loads, open(sys.argv[1]))}
+old = {r["id"]: r["logp"] for r in map(json.loads, open(sys.argv[2]))}
+diff = max(abs(new[i][c] - old[i][c]) for i in new for c in new[i])
+print(f"verify_old_vs_new: n={len(new)} same_ids={set(new) == set(old)} max_abs_diff={diff:.6f}")
+PY
+  fi
   rm -r "$TMP"
 fi
 
 START=$SECONDS
 PYTHONPATH=src python -m ecomq.data.make_rationales --model "$MODEL_DIR" --input "$INPUT" \
   --output "$OUT/$NAME.jsonl" --report "$OUT/$NAME.report.json" --review "$OUT/$NAME.review.md" \
-  --n "${N:-0}" --batch-size "${BATCH_SIZE:-32}" ${BLIND:+--blind-check}
+  --n "${N:-0}" --batch-size "${BATCH_SIZE:-32}" ${BLIND:+--blind-check} ${HONEST:+--honest-first}
 echo "make_rationales: $((SECONDS - START))s"

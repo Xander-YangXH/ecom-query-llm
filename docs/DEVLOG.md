@@ -1336,3 +1336,22 @@
 - 理由的质量依赖基座模型，可能把错误的商品知识写进训练数据。
 - GRPO 可能学会投机：例如写很长的理由、或者总是输出权重高的少数类。前者看输出长度，后者会在“加先验调整后无提升”上暴露。
 - 评测时理由由模型自己生成，测试成本是 E2a 的数倍。即使效果更好，也要和推理成本一起权衡，线上可能需要蒸馏回“直接输出标签”的模型。
+
+---
+
+## S22 · E9 第一阶段：relevance_cot 任务与 500 条理由试点（2026-10-26）
+
+**代码改动**（提交 `cbf9ff0`）
+- `schema.py`：新增任务类型 `relevance_cot`，输出 `{"reason": "…", "relevance": "…"}`，理由在前、标签在后；`parse_output` 检查 reason 是字符串，`validate_record` 检查理由非空、不超过 40 个词。四类标签的定义抽成 `LABEL_DEFINITIONS`，由 `relevance` 与 `relevance_cot` 两个指令共用。
+  - **风险与防护**：`relevance` 指令是所有已训练模型用的提示，抽取公共部分时只要差一个字符，就会造成训练与推理不一致（P1 的同类问题）。重构后与上一版逐字节比对一致，并新增单测 `test_relevance_instruction_is_frozen` 把整段指令原文锁死。
+  - `metrics.evaluate_records`：`relevance_cot` 与 `relevance` 用同一套评测（标签的解析方式相同）。
+- `eval/score_labels.py`：把“4 个候选标签打分”的循环抽成 `label_logps(model, tok, prompts)`，供理由的盲测复用。本机没有 GPU 和 torch，无法在本地验证，所以在试点作业里先用重构后的代码对测试集前 200 条重新打分（E2a 适配器），与已有的打分文件比对。
+- `data/make_rationales.py`：
+  - 输入 relevance 训练记录；`--n` 大于 0 时按类别分层抽样（试点每类 125 条，便于检查 complement / irrelevant 的理由质量；不是自然分布）。
+  - 提示词给出四类定义、query、标题和标注标签，要求一句话（提示里写不超过 30 个词，给 40 个词的上限留余量）说明商品是什么、满足或缺少 query 的哪项要求、或怎样与 query 要找的商品搭配使用，不许出现四个标签词。基座模型、bf16、贪心解码。
+  - 质量标记：出现标签词（含 exactly、substitutes、complementary 等变形）、超长、为空。有标记的样本用采样（temperature 0.7）重试一次。
+  - 盲测：只给基座模型 query、标题和理由，用原 relevance 指令对 4 个标签打分取最大，与标注比对；同时给出不带理由的零样本作对照。
+  - 速度：生成的 token 数、耗时、tokens/s。
+  - 另写出按类别抽样的 Markdown 表（每类 13 条），用于逐条检查。
+- `scripts/slurm/rationales.sbatch`：试点作业（含打分重构的验证），也用于之后的全量生成。
+- 单测 51 个全部通过。

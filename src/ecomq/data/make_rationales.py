@@ -2,11 +2,15 @@
 
 做法：给基座模型 query、商品标题和**标注标签**，让它用一句话（不超过 40 个词）说明商品与 query 的关系，
 不许写出标签名。理由写在标签前面，训练时标签以理由为条件。
+--honest-first（STaR 式，DEVLOG S22）：先不给标签，让基座模型按 relevance_cot 指令自己写理由并判断；
+  判断与标注一致且理由无标记时直接采用（source=self），否则才用给了标签的版本（source=hinted）。
+  这样能减少“为有争议的标注编造理由”。
 质量检查（写进 --report）：
   flags        理由中出现标签词（exact / substitute / complement / irrelevant 及其变形）、超长、为空。
-               有问题的样本用采样（temperature 0.7）重试一次，仍有问题的保留标记，由下游决定是否丢弃。
+               有问题的样本用采样（temperature 0.7）最多重试 --retries 次，仍有问题的保留标记，由下游决定是否丢弃。
   blind check  只给基座模型 query、标题和理由（不给标签），用 relevance 指令对 4 个标签打分，
-               与标注比对；同时给出不带理由的零样本结果作对照。衡量理由里有没有足以判断标签的信息。
+               与标注比对；同时给出不带理由的零样本，以及把理由中的标签词遮住（[...]）的版本作对照。
+               遮住后仍能判对，说明理由里有标签词以外的信息。每条的预测写进 meta.rationale.blind。
   speed        生成的 token 数、耗时、tokens/s，并按此估算全量所需时间。
 另外写出 --review（按类别抽样的 Markdown 表），供人工逐条检查理由是否合理。
 """
@@ -30,8 +34,11 @@ RATIONALE_PROMPT = (
     "Write ONE sentence of at most 30 words explaining the relationship between the product and what the query is "
     "looking for, consistent with the human label. Be concrete: say what the product is, and which requirement of "
     "the query it meets or misses, or how it would be used together with the item the query asks for. "
-    "Do not use the words exact, substitute, complement or irrelevant. Output only the sentence."
+    "Do not use the words exact, substitute, complement or irrelevant (or forms such as exactly, substitutes, "
+    "complements, complementary); describe the relationship in plain words instead, for example \"matches every "
+    "requirement\", \"an alternative to\", \"an accessory used with\", \"unrelated to\". Output only the sentence."
 )
+RETRY_SUFFIX = "\nYour previous answer used a forbidden word ({words}). Rewrite it without that word."
 
 
 def stratified_sample(recs: list[dict], n: int, seed: int) -> list[dict]:
@@ -66,12 +73,16 @@ def reason_flags(reason: str) -> list[str]:
     return flags
 
 
-def to_cot_record(rec: dict, reason: str, flags: list[str], retried: bool) -> dict:
+def to_cot_record(rec: dict, reason: str, flags: list[str], retried: bool, source: str = "hinted") -> dict:
     out = json.loads(json.dumps(rec))
     out["task"] = "relevance_cot"
     out["label"] = {"reason": reason, "relevance": rec["label"]["relevance"]}
-    out.setdefault("meta", {})["rationale"] = {"flags": flags, "retried": retried}
+    out.setdefault("meta", {})["rationale"] = {"flags": flags, "retried": retried, "source": source}
     return out
+
+
+def mask_label_words(reason: str) -> str:
+    return LABEL_WORDS.sub("[...]", reason)
 
 
 def macro_f1(gold: list[str], pred: list[str]) -> float:
@@ -86,13 +97,14 @@ def macro_f1(gold: list[str], pred: list[str]) -> float:
 
 def review_table(rows: list[dict], per_class: int, seed: int) -> str:
     rng = random.Random(seed)
-    lines = ["| # | label | query | product title | reason | flags |", "|---|---|---|---|---|---|"]
+    lines = ["| # | label | query | product title | reason | source | flags |", "|---|---|---|---|---|---|---|"]
     k = 0
     for lab in RELEVANCE:
         pool = [r for r in rows if r["label"]["relevance"] == lab]
         for r in rng.sample(pool, min(per_class, len(pool))):
             k += 1
-            cells = [str(k), lab, r["query"], r["title"], r["label"]["reason"], ",".join(r["meta"]["rationale"]["flags"])]
+            cells = [str(k), lab, r["query"], r["title"], r["label"]["reason"], r["meta"]["rationale"].get("source", ""),
+                     ",".join(r["meta"]["rationale"]["flags"])]
             lines.append("| " + " | ".join(c.replace("|", "/") for c in cells) + " |")
     return "\n".join(lines) + "\n"
 
@@ -109,6 +121,8 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--batch-size", type=int, default=32)
     ap.add_argument("--max-new-tokens", type=int, default=72)
+    ap.add_argument("--retries", type=int, default=3)
+    ap.add_argument("--honest-first", action="store_true", help="先让模型不看标签自己判断，判对的直接采用其理由")
     ap.add_argument("--blind-check", action="store_true", help="只看理由预测标签，并与不带理由的零样本对照")
     args = ap.parse_args()
 
@@ -116,6 +130,7 @@ def main():
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     from ecomq.eval.score_labels import label_logps
+    from ecomq.schema import parse_output
 
     recs = stratified_sample(list(read_jsonl(args.input)), args.n, args.seed)
     assert all(r["task"] == "relevance" for r in recs)
@@ -125,72 +140,120 @@ def main():
     # 基座模型、不挂 LoRA，用 bf16（比 4bit 快，显存足够）
     model = AutoModelForCausalLM.from_pretrained(args.model, dtype=torch.bfloat16, device_map={"": 0})
     model.eval()
+    stats = {"generated_tokens": 0, "seconds": 0.0, "generated_rows": 0}
 
     def chat(content: str) -> str:
         return tok.apply_chat_template([{"role": "user", "content": content}], tokenize=False, add_generation_prompt=True)
 
-    def generate(items: list[dict], sample: bool) -> tuple[list[str], int, float]:
-        prompts = [chat(RATIONALE_PROMPT.format(query=r["query"], title=r["title"], label=r["label"]["relevance"]))
-                   for r in items]
-        texts, n_tok, start = [], 0, time.time()
+    def generate(prompts: list[str], sample: bool, max_new_tokens: int) -> list[str]:
+        texts, start = [], time.time()
         for i in range(0, len(prompts), args.batch_size):
             enc = tok(prompts[i : i + args.batch_size], return_tensors="pt", padding=True).to(model.device)
-            gen = dict(max_new_tokens=args.max_new_tokens, do_sample=sample)
+            gen = dict(max_new_tokens=max_new_tokens, do_sample=sample)
             if sample:
                 gen.update(temperature=0.7, top_p=0.95)
             with torch.no_grad():
                 out = model.generate(**enc, **gen)
             new = out[:, enc["input_ids"].shape[1] :]
-            n_tok += int((new != tok.pad_token_id).sum())
+            stats["generated_tokens"] += int((new != tok.pad_token_id).sum())
             texts += tok.batch_decode(new, skip_special_tokens=True)
-        return [clean_reason(t) for t in texts], n_tok, time.time() - start
+        stats["seconds"] += time.time() - start
+        stats["generated_rows"] += len(prompts)
+        return texts
+
+    def hinted_prompt(r: dict, bad_words: str = "") -> str:
+        text = RATIONALE_PROMPT.format(query=r["query"], title=r["title"], label=r["label"]["relevance"])
+        return chat(text + (RETRY_SUFFIX.format(words=bad_words) if bad_words else ""))
 
     torch.manual_seed(args.seed)
-    reasons, n_tok, secs = generate(recs, sample=False)
+    reasons, sources = [None] * len(recs), ["hinted"] * len(recs)
+    self_correct = Counter()
+    if args.honest_first:
+        outs = generate([chat(build_user_prompt(r["query"], r["title"], "relevance_cot")) for r in recs], False, 96)
+        for i, (r, text) in enumerate(zip(recs, outs)):
+            obj = parse_output(text, "relevance_cot")
+            if obj and obj["relevance"] == r["label"]["relevance"]:
+                self_correct[r["label"]["relevance"]] += 1
+                reason = clean_reason(obj["reason"])
+                if not reason_flags(reason):
+                    reasons[i], sources[i] = reason, "self"
+    todo = [i for i, x in enumerate(reasons) if x is None]
+    for i, text in zip(todo, generate([hinted_prompt(recs[i]) for i in todo], False, args.max_new_tokens)):
+        reasons[i] = clean_reason(text)
     flags = [reason_flags(x) for x in reasons]
     first_flags = Counter(f for fl in flags for f in fl)
-    redo = [i for i, fl in enumerate(flags) if fl]
     retried = set()
-    if redo:
-        again, n2, s2 = generate([recs[i] for i in redo], sample=True)
-        n_tok, secs = n_tok + n2, secs + s2
-        for i, x in zip(redo, again):
+    for _ in range(args.retries):
+        redo = [i for i, fl in enumerate(flags) if fl]
+        if not redo:
+            break
+        prompts = [hinted_prompt(recs[i], ", ".join(sorted({m.lower() for m in LABEL_WORDS.findall(reasons[i])}))) for i in redo]
+        for i, text in zip(redo, generate(prompts, True, args.max_new_tokens)):
             retried.add(i)
+            x = clean_reason(text)
             if not reason_flags(x):
-                reasons[i], flags[i] = x, []
-    rows = [to_cot_record(r, x, fl, i in retried) for i, (r, x, fl) in enumerate(zip(recs, reasons, flags))]
+                reasons[i], flags[i], sources[i] = x, [], "hinted"
+    rows = [to_cot_record(r, x, fl, i in retried, src)
+            for i, (r, x, fl, src) in enumerate(zip(recs, reasons, flags, sources))]
     bad_schema = sum(bool(validate_record(r)) for r in rows if not r["meta"]["rationale"]["flags"])
     assert bad_schema == 0, f"{bad_schema} unflagged rows fail schema validation"
-    write_jsonl(args.output, rows)
 
     words = [len(r["label"]["reason"].split()) for r in rows]
+    by_label = Counter(r["label"]["relevance"] for r in rows)
     report = {
-        "input": Path(args.input).name, "n": len(rows), "stratified": bool(args.n),
-        "labels": dict(Counter(r["label"]["relevance"] for r in rows)),
-        "flags_first_pass": dict(first_flags), "retried": len(redo),
+        "input": Path(args.input).name, "n": len(rows), "stratified": bool(args.n), "honest_first": args.honest_first,
+        "labels": dict(by_label),
+        "source": dict(Counter(r["meta"]["rationale"]["source"] for r in rows)),
+        "source_self_by_label": {c: sum(r["meta"]["rationale"]["source"] == "self" for r in rows
+                                        if r["label"]["relevance"] == c) for c in RELEVANCE},
+        "honest_first_correct_by_label": dict(self_correct) if args.honest_first else None,
+        "flags_first_pass": dict(first_flags), "retried": len(retried), "retries": args.retries,
         "flagged_after_retry": dict(Counter(f for fl in flags for f in fl)),
         "flagged_rows_after_retry": sum(bool(fl) for fl in flags),
+        "flagged_rows_by_label": {c: sum(bool(r["meta"]["rationale"]["flags"]) for r in rows
+                                         if r["label"]["relevance"] == c) for c in RELEVANCE},
         "reason_words": {"mean": round(sum(words) / len(words), 1), "max": max(words),
                          "p90": sorted(words)[int(0.9 * (len(words) - 1))]},
-        "speed": {"generated_tokens": n_tok, "seconds": round(secs, 1), "tokens_per_s": round(n_tok / secs, 1),
-                  "rows_per_s": round((len(rows) + len(redo)) / secs, 2), "batch_size": args.batch_size},
+        "speed": {"generated_tokens": stats["generated_tokens"], "seconds": round(stats["seconds"], 1),
+                  "tokens_per_s": round(stats["generated_tokens"] / stats["seconds"], 1),
+                  "generated_rows_per_s": round(stats["generated_rows"] / stats["seconds"], 2),
+                  "batch_size": args.batch_size},
     }
 
     if args.blind_check:
         gold = [r["label"]["relevance"] for r in rows]
-        plain = [chat(build_user_prompt(r["query"], r["title"], "relevance")) for r in rows]
-        with_reason = [chat(build_user_prompt(r["query"], r["title"], "relevance") + f"\nexplanation: {r['label']['reason']}")
-                       for r in rows]
-        out = {}
-        for name, prompts in (("zero_shot", plain), ("with_reason", with_reason)):
+        base = [build_user_prompt(r["query"], r["title"], "relevance") for r in rows]
+        variants = {
+            "zero_shot": [chat(b) for b in base],
+            "with_reason": [chat(b + f"\nexplanation: {r['label']['reason']}") for b, r in zip(base, rows)],
+            "masked_reason": [chat(b + f"\nexplanation: {mask_label_words(r['label']['reason'])}") for b, r in zip(base, rows)],
+        }
+        preds = {}
+        for name, prompts in variants.items():
             scores = label_logps(model, tok, prompts, args.batch_size)
-            pred = [max(s, key=s.get) for s in scores]
-            per_class = {c: round(sum(g == p == c for g, p in zip(gold, pred)) / max(1, gold.count(c)), 3)
-                         for c in RELEVANCE}
-            out[name] = {"accuracy": round(sum(g == p for g, p in zip(gold, pred)) / len(gold), 4),
-                         "macro_f1": round(macro_f1(gold, pred), 4), "recall_per_class": per_class}
-        report["blind_check"] = out
+            preds[name] = [max(sc, key=sc.get) for sc in scores]
+        for i, r in enumerate(rows):
+            r["meta"]["rationale"]["blind"] = {name: preds[name][i] for name in preds}
 
+        def summary(idx: list[int]) -> dict:
+            out = {}
+            for name, pred in preds.items():
+                g, p = [gold[i] for i in idx], [pred[i] for i in idx]
+                out[name] = {"n": len(idx), "accuracy": round(sum(a == b for a, b in zip(g, p)) / max(1, len(idx)), 4),
+                             "macro_f1": round(macro_f1(g, p), 4),
+                             "recall_per_class": {c: round(sum(a == b == c for a, b in zip(g, p)) / max(1, g.count(c)), 3)
+                                                  for c in RELEVANCE}}
+            return out
+
+        all_idx = list(range(len(rows)))
+        report["blind_check"] = {
+            "all": summary(all_idx),
+            "unflagged": summary([i for i in all_idx if not rows[i]["meta"]["rationale"]["flags"]]),
+            "source_self": summary([i for i in all_idx if rows[i]["meta"]["rationale"]["source"] == "self"]),
+            "source_hinted": summary([i for i in all_idx if rows[i]["meta"]["rationale"]["source"] == "hinted"]),
+        }
+
+    write_jsonl(args.output, rows)
     Path(args.report).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     if args.review:
         Path(args.review).write_text(review_table(rows, args.review_per_class, args.seed), encoding="utf-8")

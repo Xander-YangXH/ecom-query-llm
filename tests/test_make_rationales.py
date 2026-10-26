@@ -35,3 +35,12 @@ def test_cot_record_is_valid_and_keeps_original():
     assert rec["task"] == "relevance" and "rationale" not in rec["meta"]   # 不修改输入
     table = review_table([out], per_class=5, seed=0)
     assert "complement" in table and table.count("\n") == 3
+
+
+def test_mask_label_words_and_prompt_render():
+    from ecomq.data.make_rationales import RATIONALE_PROMPT, RETRY_SUFFIX, mask_label_words
+
+    assert mask_label_words("It complements the phone, exactly as asked.") == "It [...] the phone, [...] as asked."
+    text = RATIONALE_PROMPT.format(query="q", title="t", label="complement")
+    assert "human label: complement" in text and "{" not in text
+    assert RETRY_SUFFIX.format(words="complements").startswith("\nYour previous answer")

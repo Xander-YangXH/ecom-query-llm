@@ -30,7 +30,10 @@ def extract_reason(text: str) -> tuple[str, str | None, str]:
     if m:
         import json
 
-        return json.loads(f'"{m.group(1)}"'), None, "reason_only"
+        try:
+            return json.loads(f'"{m.group(1)}"'), None, "reason_only"
+        except json.JSONDecodeError:  # 模型可能写出 JSON 不允许的转义（例如 \'），见 DEVLOG S23 P17
+            return re.sub(r"\\(.)", r"\1", m.group(1)), None, "reason_only"
     return "", None, "parse_failed"
 
 

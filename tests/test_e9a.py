@@ -8,6 +8,9 @@ def test_extract_reason_handles_valid_partial_and_garbage():
     assert extract_reason('{"reason": "A case for the phone.", "relevance": "partial"}') == ("A case for the phone.", None, "ok")
     assert extract_reason('{"reason": "Says \\"hi\\" twice", "relev') == ('Says "hi" twice', None, "reason_only")
     assert extract_reason("no json at all") == ("", None, "parse_failed")
+    # 47258 失败的原因：截断的输出里有 JSON 不允许的转义 \'（P17）
+    text = r"""{"reason": "It\'s a case for the phone", "relevance": "compl"""
+    assert extract_reason(text) == ("It's a case for the phone", None, "reason_only")
 
 
 def test_common_prefix_len():

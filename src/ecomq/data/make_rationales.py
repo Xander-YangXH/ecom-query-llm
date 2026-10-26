@@ -34,10 +34,12 @@ RATIONALE_PROMPT = (
     "Write ONE sentence of at most 30 words explaining the relationship between the product and what the query is "
     "looking for, consistent with the human label. Be concrete: say what the product is, and which requirement of "
     "the query it meets or misses, or how it would be used together with the item the query asks for. "
-    "Do not use the words exact, substitute, complement or irrelevant (or forms such as exactly, substitutes, "
-    "complements, complementary); describe the relationship in plain words instead, for example \"matches every "
-    "requirement\", \"an alternative to\", \"an accessory used with\", \"unrelated to\". Output only the sentence."
+    "Mention at least one concrete attribute of the product (its type, brand, model, size or what it is compatible "
+    "with). Do not use the words exact, substitute, complement or irrelevant, or forms such as exactly, substitutes, "
+    "complements, complementary. Output only the sentence."
 )
+# v2 试点在提示里给了替代说法的例子，结果被当成模板照抄（DEVLOG S22）；v3 去掉例子，这里只用来统计模板化程度。
+TEMPLATE_PHRASES = re.compile(r"matches every requirement|\balternative to\b|\bunrelated to\b", re.IGNORECASE)
 RETRY_SUFFIX = "\nYour previous answer used a forbidden word ({words}). Rewrite it without that word."
 
 
@@ -212,6 +214,9 @@ def main():
         "flagged_rows_after_retry": sum(bool(fl) for fl in flags),
         "flagged_rows_by_label": {c: sum(bool(r["meta"]["rationale"]["flags"]) for r in rows
                                          if r["label"]["relevance"] == c) for c in RELEVANCE},
+        "template_share_by_label": {c: round(sum(bool(TEMPLATE_PHRASES.search(r["label"]["reason"])) for r in rows
+                                                  if r["label"]["relevance"] == c) / max(1, by_label[c]), 3)
+                                    for c in RELEVANCE},
         "reason_words": {"mean": round(sum(words) / len(words), 1), "max": max(words),
                          "p90": sorted(words)[int(0.9 * (len(words) - 1))]},
         "speed": {"generated_tokens": stats["generated_tokens"], "seconds": round(stats["seconds"], 1),
@@ -246,6 +251,12 @@ def main():
             return out
 
         all_idx = list(range(len(rows)))
+        report["inconsistent"] = {  # 只看理由时判出的标签与标注不同：理由与标签矛盾，下游可选择丢弃
+            "rows": sum(preds["with_reason"][i] != gold[i] for i in all_idx),
+            "by_label": {c: sum(preds["with_reason"][i] != gold[i] for i in all_idx if gold[i] == c) for c in RELEVANCE},
+            "by_source": dict(Counter(rows[i]["meta"]["rationale"]["source"] for i in all_idx
+                                      if preds["with_reason"][i] != gold[i])),
+        }
         report["blind_check"] = {
             "all": summary(all_idx),
             "unflagged": summary([i for i in all_idx if not rows[i]["meta"]["rationale"]["flags"]]),

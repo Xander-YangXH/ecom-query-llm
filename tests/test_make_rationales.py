@@ -44,3 +44,10 @@ def test_mask_label_words_and_prompt_render():
     text = RATIONALE_PROMPT.format(query="q", title="t", label="complement")
     assert "human label: complement" in text and "{" not in text
     assert RETRY_SUFFIX.format(words="complements").startswith("\nYour previous answer")
+
+
+def test_v3_prompt_has_no_template_examples():
+    from ecomq.data.make_rationales import RATIONALE_PROMPT, TEMPLATE_PHRASES
+
+    assert not TEMPLATE_PHRASES.search(RATIONALE_PROMPT)   # v2 的例子会被照抄成模板（DEVLOG S22）
+    assert TEMPLATE_PHRASES.search("It matches every requirement.") and TEMPLATE_PHRASES.search("unrelated to it")

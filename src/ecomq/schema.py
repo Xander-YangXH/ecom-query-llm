@@ -3,6 +3,8 @@
 任务（每条记录的 rec["task"]）：
   full       完整的 query 理解：intent + attributes + rewrite（+ 给出标题时的 relevance）。标签来自合成数据。
   relevance  query–商品相关性四分类，与 ESCI Task 2 一致。标签来自 ESCI 人工标注。
+  relevance_cot  同一个四分类，但先输出一句理由（reason），再输出标签（E9，DEVLOG S21）。
+             理由写在前面，标签以理由为条件；理由由 ecomq.data.make_rationales 生成。
 标签定义与例子见 docs/LABELS.md。
 """
 import json
@@ -16,7 +18,15 @@ PRICE_KEYS = {"price_min", "price_max"}
 TASK_FIELDS = {
     "full": ("intent", "attributes", "rewrite", "relevance"),
     "relevance": ("relevance",),
+    "relevance_cot": ("reason", "relevance"),
 }
+
+LABEL_DEFINITIONS = (
+    "exact: the product satisfies all requirements of the query. "
+    "substitute: the product misses some requirement but could serve as a functional substitute. "
+    "complement: the product does not match the query but could be used together with a matching product. "
+    "irrelevant: the product is unrelated or fails a central requirement of the query. "
+)
 
 INSTRUCTIONS = {
     "full": (
@@ -32,13 +42,20 @@ INSTRUCTIONS = {
     "relevance": (
         "You are a relevance judge for e-commerce search. Given a user query and a product title, "
         "classify how well the product matches the query. "
-        "exact: the product satisfies all requirements of the query. "
-        "substitute: the product misses some requirement but could serve as a functional substitute. "
-        "complement: the product does not match the query but could be used together with a matching product. "
-        "irrelevant: the product is unrelated or fails a central requirement of the query. "
-        'Output JSON only, in the form {"relevance": "<label>"}.'
+        + LABEL_DEFINITIONS
+        + 'Output JSON only, in the form {"relevance": "<label>"}.'
+    ),
+    "relevance_cot": (
+        "You are a relevance judge for e-commerce search. Given a user query and a product title, "
+        "classify how well the product matches the query. "
+        + LABEL_DEFINITIONS
+        + "First write one short sentence describing what the product is and how it relates to what the query "
+        "is looking for, then give the label. "
+        'Output JSON only, in the form {"reason": "<one sentence>", "relevance": "<label>"}.'
     ),
 }
+
+MAX_REASON_WORDS = 40
 
 
 def task_of(rec: dict) -> str:
@@ -88,6 +105,8 @@ def parse_output(text: str, task: str = "full") -> dict | None:
     if not isinstance(obj, dict) or any(k not in obj for k in TASK_FIELDS[task]):
         return None
     if "attributes" in TASK_FIELDS[task] and not isinstance(obj["attributes"], dict):
+        return None
+    if "reason" in TASK_FIELDS[task] and not isinstance(obj["reason"], str):
         return None
     return obj
 
@@ -139,6 +158,16 @@ def _validate_relevance(rec: dict, label: dict) -> list[str]:
     return errors
 
 
+def _validate_relevance_cot(rec: dict, label: dict) -> list[str]:
+    errors = _validate_relevance(rec, label)
+    reason = label.get("reason")
+    if not isinstance(reason, str) or not reason.strip():
+        errors.append("reason missing or empty")
+    elif len(reason.split()) > MAX_REASON_WORDS:
+        errors.append(f"reason longer than {MAX_REASON_WORDS} words")
+    return errors
+
+
 def validate_record(rec: dict) -> list[str]:
     """返回错误列表，空列表表示通过。rec 为规范格式：id/task/query/title?/label/group?/meta?。"""
     query, label, task = rec.get("query"), rec.get("label"), task_of(rec)
@@ -150,4 +179,6 @@ def validate_record(rec: dict) -> list[str]:
         return ["label missing"]
     if task == "relevance":
         return _validate_relevance(rec, label)
+    if task == "relevance_cot":
+        return _validate_relevance_cot(rec, label)
     return _validate_full(rec, label)

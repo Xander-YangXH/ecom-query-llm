@@ -123,7 +123,7 @@ def evaluate_records(records: list[dict], raw_outputs: list[str]) -> dict:
     report = {}
     for task, (recs, outs) in by_task.items():
         golds = [r["label"] for r in recs]
-        if task == "relevance":
+        if task in ("relevance", "relevance_cot"):  # relevance_cot 的输出多一个 reason 字段，标签解析方式相同
             report[task] = evaluate_relevance(golds, outs)
         else:
             report[task] = evaluate_full(golds, outs)

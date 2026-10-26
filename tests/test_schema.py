@@ -83,3 +83,34 @@ def test_redact_hides_machine_paths():
     assert redact(DATA_ROOT / "e1_relevance" / "splits" / "train.jsonl") == "$DATA_ROOT/e1_relevance/splits/train.jsonl"
     assert redact("/private/tmp/xyz/abc/e4-20k-raw.jsonl") == "e4-20k-raw.jsonl"
     assert redact("/home/someone/other/file.jsonl") == "file.jsonl"
+
+
+def test_relevance_instruction_is_frozen():
+    """已训练的所有模型都用这段指令；任何改动都会造成训练/推理不一致（DEVLOG P1），必须原样保留。"""
+    from ecomq.schema import INSTRUCTIONS
+
+    assert INSTRUCTIONS["relevance"] == (
+        "You are a relevance judge for e-commerce search. Given a user query and a product title, "
+        "classify how well the product matches the query. "
+        "exact: the product satisfies all requirements of the query. "
+        "substitute: the product misses some requirement but could serve as a functional substitute. "
+        "complement: the product does not match the query but could be used together with a matching product. "
+        "irrelevant: the product is unrelated or fails a central requirement of the query. "
+        'Output JSON only, in the form {"relevance": "<label>"}.'
+    )
+
+
+def test_relevance_cot_roundtrip_and_validation():
+    cot = {"reason": "A camera battery is an accessory used with the camera the query asks for.",
+           "relevance": "complement"}
+    text = format_output(cot, "relevance_cot")
+    assert text.index('"reason"') < text.index('"relevance"')     # 理由在前，标签以理由为条件
+    assert parse_output(text, "relevance_cot") == cot
+    assert parse_output(text, "relevance") == cot                 # 标签解析与 relevance 任务兼容
+    assert parse_output('{"relevance": "exact"}', "relevance_cot") is None
+    assert parse_output('{"reason": 3, "relevance": "exact"}', "relevance_cot") is None
+    rec = {"task": "relevance_cot", "query": "camera", "title": "Battery for X100", "label": cot}
+    assert validate_record(rec) == []
+    assert validate_record({**rec, "label": {**cot, "reason": " "}})
+    assert validate_record({**rec, "label": {**cot, "reason": "word " * 41}})
+    assert validate_record({**rec, "label": {**cot, "relevance": "partial"}})

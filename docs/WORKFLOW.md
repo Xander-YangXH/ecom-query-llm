@@ -97,6 +97,8 @@ sbatch --export=ALL,CONFIG=configs/sft/qwen7b_qlora_r16.yaml,MODEL=Qwen2.5-7B-In
 
 ## 4. 迁移到 NSCC
 
+> 2026-10-27：下一阶段要做的实验、`scripts/pbs/` 需要改的地方和迁移检查表见 [NSCC_PLAN.md](NSCC_PLAN.md)。下面是项目初期写的通用步骤，PBS 脚本目前仍是占位。
+
 CCDS 冒烟通过、配置稳定后再迁移：
 
 1. 在 NSCC 上 clone 仓库，`cp .env.nscc.example .env`，运行 `bash scripts/setup_env.sh`。

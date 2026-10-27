@@ -1,7 +1,7 @@
 [project]
 name = "ecomq"
 version = "0.1.0"
-description = "电商搜索 Query 理解：SFT-LoRA / DPO / GRPO 实验项目"
+description = "电商搜索相关性判断（ESCI）：Qwen2.5-7B QLoRA 微调与评测"
 requires-python = ">=3.10"
 dependencies = []
 

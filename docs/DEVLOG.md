@@ -20,7 +20,7 @@
 | P6 | S5 | transformers 5.x 中 `torch_dtype` 已弃用 | 推理脚本改用 `dtype` |
 | P7 | S6 | 代码同步漏传 `src/ecomq/data/`，作业报 `No module named 'ecomq.data'` | 改为只同步 git 跟踪的文件，并在同步后抽查子包 |
 | P8 | S6 | QLoRA 适配器配 bf16 基座评测，边界样本判断翻转 | QLoRA 模型评测时用 `LOAD_4BIT=1`，与训练时的量化方式一致 |
-| P9 | S6 | `pip freeze` 把含用户名的本地路径写进了锁定文件并已推送 | 改用 `pip freeze --exclude-editable`；历史提交中的残留待决定是否清理 |
+| P9 | S6 | `pip freeze` 把含用户名的本地路径写进了锁定文件并已推送 | 改用 `pip freeze --exclude-editable`；历史提交中的残留待决定是否清理（仓库已公开，见 S25） |
 | P10 | S7 | 一次性提交整条依赖链被拒：`QOSMaxSubmitJobPerUserLimit` | 每人最多同时提交 2 个作业；改用头节点上的顺序调度脚本 `chain_e1.sh` |
 | P11 | S7 | 调度脚本挂在本机 SSH 会话里，断开后可能被 SIGPIPE 终止；`pkill -f` 误杀了执行它的 SSH 会话 | 改用 `setsid nohup` 在服务器上独立运行、直接写日志；`pkill` 的匹配模式不要包含命令行里出现的文本 |
 | P12 | S9 | `sbatch --export=...,PREP_ARGS="... complement=0.10,irrelevant=0.20"` 会把值里的逗号当成变量分隔符 | 含逗号的值改为通过环境变量传递，依靠 `--export=ALL` 继承 |

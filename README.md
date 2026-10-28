@@ -54,7 +54,7 @@ scripts/pbs/          NSCC 作业脚本（占位，尚未适配，见 docs/NSCC_
 scripts/              环境安装、模型与数据下载、代码同步（remote.sh）、本地分析缓存（local_cache.sh）、提交前检查（check_leaks.sh）
 analysis/             es_audit（E↔S）、ci_audit（complement / irrelevant）两份盲评材料
 reports/              各实验的指标与对比 JSON（小文件，进 git）
-docs/                 DEVLOG（技术日志）、LABELS（标签说明）、WORKFLOW（工作流）、NSCC_PLAN（下一阶段计划）
+docs/                 DEVLOG（技术日志）、LABELS（标签说明）、WORKFLOW（工作流）、NSCC_PLAN（下一阶段计划）、TEAM_TODO（组员待办与 NSCC 上手）
 tests/                单测（57 个）
 ```
 

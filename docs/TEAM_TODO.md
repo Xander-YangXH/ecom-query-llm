@@ -87,9 +87,30 @@ CCDS 单卡阶段已经结束，结果见仓库 `docs/DEVLOG.md` 的 S0–S24。
 
 **3. 登录**
 
-- NTU 用户的登录节点是 `aspire2antu.nscc.sg`。要先申请 NTU 跳板机（jumphost）权限，申请方式见 FAQ 第 2.3 条，以及 NTU 的 “Using NTU JumpHost to NSCC ASPIRE 2A” 指南。
-- 其他入口：先连 ASPIRE 2A 的 VPN，再登录 `aspire2a.nscc.sg` 或 `login.asp2a.nscc.sg`。NUS、A\*STAR、SUTD 用户各有自己的登录节点，见 FAQ。
-- 登录命令：`ssh <NSCC 用户名>@aspire2antu.nscc.sg`。建议在 user.nscc.sg 上传 SSH 公钥，用密钥登录。
+NTU 用户的登录节点是 `aspire2antu.nscc.sg`，用 NSCC 的用户名和密码（或 SSH 密钥）登录。从哪里连决定了要不要经过跳板机。以下来自 NTU HPC Users' Group 的 SharePoint 页面 “Using NTU JumpHost to NSCC ASPIRE-2A”，需要 NTU 账号才能打开；跳板机的地址也写在那个页面上，这里不写。
+
+- **在 NTU 校园内**：不需要跳板机，直接 `ssh <NSCC 用户名>@aspire2antu.nscc.sg`。连 NTU-SECURE 无线网是否算在校内，页面上没有答复，第一次登录时试一下即可。
+- **在校外**：NTU VPN 不允许直接连到 NSCC，必须分两跳：
+  1. 连上 NTU VPN。
+  2. 用 NTU 账号和密码 SSH 登录 NTU HPCC 的跳板机。
+  3. 在跳板机上用 NSCC 账号 `ssh <NSCC 用户名>@aspire2antu.nscc.sg`。
+- **跳板机账号**：要把自己的 NTU ID 登记到 HPCC 跳板机，并关联导师的 NTU ID（用于追溯和费用分摊）。登记方式页面上没有写明，联系 NTU HPC 团队。也可以用自己学院放在校内的电脑或工作站当跳板机，Windows 机器需要开启远程桌面。
+- **跳板机的限制**：每人 50 GB；不能存放数据，管理员可能不经通知直接删除；每人同时最多建立 2 个到 NSCC 的连接。大量数据请用校内的电脑中转。
+- **NTU VPN**：学生默认没有 VPN 权限，需要由导师（PI）填写 NTU 的 VPN 申请表，通常一周内会收到确认邮件。VPN 入口：教职工用 vpngate-staff.ntu.edu.sg，学生用 vpngate-student.ntu.edu.sg。
+- **省事的写法**：在本机 `~/.ssh/config` 里配置一次，之后 `ssh nscc` 就会自动经过跳板机，`rsync` 和 `scp` 同样适用：
+
+```
+Host ntu-jump
+    HostName <跳板机地址，见 SharePoint 页面>
+    User <NTU 用户名>
+Host nscc
+    HostName aspire2antu.nscc.sg
+    User <NSCC 用户名>
+    ProxyJump ntu-jump
+```
+
+- 非 NTU 的入口：先连 ASPIRE 2A 的 VPN，再登录 `aspire2a.nscc.sg` 或 `login.asp2a.nscc.sg`。NUS、A\*STAR、SUTD 的用户各有自己的登录节点，见 FAQ。
+- 建议在 user.nscc.sg 上传 SSH 公钥，用密钥登录 NSCC。
 
 **4. 存储**
 
@@ -145,6 +166,7 @@ llamafactory-cli train configs/sft/e2_relevance_qlora_1ep_best.yaml
 
 | 编号 | 任务 | 完成标准 | 依赖 | 负责人 | 状态 |
 | --- | --- | --- | --- | --- | --- |
+| A0 | 每位组员开通访问权限：NSCC 账号（user.nscc.sg）；在校外工作的，还要开通 NTU VPN（学生由导师申请）和 HPCC 跳板机登记 | 能 `ssh` 到 `aspire2antu.nscc.sg`，`myprojects` 能看到本组项目 | A1（项目号） | 每位组员 | 未开始 |
 | A1 | 核对账号与调度：项目号、队列名、`select=` 资源写法、单个作业的时间上限、每人可同时提交的作业数 | 写进 `NSCC_PLAN.md` 的检查表，并补进上方“NSCC 快速上手” | — | | 未开始 |
 | A2 | 核对硬件与存储：GPU 型号与显存、项目目录路径与配额、计算节点能否访问外网、Python 与 CUDA 的 module 名称 | 写进检查表；据此确定 N3 的批大小和 ZeRO 设置 | — | | 未开始 |
 | A3 | 安装环境：`scripts/setup_env.sh` 按 `requirements-lock-ccds.txt` 固定版本（transformers 5.6.0、peft 0.18.1、trl 0.24.0、LLaMA-Factory 0.9.5、torch 2.11） | 在计算节点上导入成功，能看到 GPU | A2 | | 未开始 |

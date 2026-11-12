@@ -1,16 +1,16 @@
 # N1 AutoDL 单卡工程与运行指南
 
-本文只覆盖 N1（Qwen2.5-14B-Instruct QLoRA）及其必要的 N0 环境门禁，不实现 N2/N3/N4。当前阶段只完成本地代码与检查；没有 GPU 结果。
+本文只覆盖 N1（Qwen2.5-14B-Instruct QLoRA）及其必要的 N0 环境门禁，不实现 N2/N3/N4。N1 三种子训练与标准 full-test 评估已经完成；统一协议的 E2a 复评和稳健性分析仍待完成。
 
 ## 1. 审查结论
 
-### 仓库与协作状态（2026-11-04）
+### 仓库与协作状态（更新于 2026-11-12）
 
 - 最初工作目录不是 Git 仓库，而是 AI6130 Assignment 1 的旧产物。本项目已单独克隆为 `ecom-query-llm`。
-- 实验仓库基线：`Xander-YangXH/ecom-query-llm` 的 `main`，审查时为 `81f08d6`；N1 工作位于 `feat/n1-autodl-qwen14b`。
+- 实验仓库上游：`Xander-YangXH/ecom-query-llm`；N1 工作位于个人 fork `Pat7ryk/ecom-query-llm` 的 `feat/n1-autodl-qwen14b`。
 - 最终提交仓库 `Xander-YangXH/NTU-AI6130-LLM-Project` 可访问。其 `main` 只有项目 README；成员通过 `liyouran`、`zhangchen` 远端分支交付结果。
-- `liyouran` 分支记录 N0 seed 42 在 L40S 上通过：prior Macro F1 0.5493，落在历史 E2a 三种子 0.5405–0.5538 内。这证明原 CCDS 链路可复现，但不是 AutoDL/A100 环境证明。
-- 本地分支不 push、不创建 PR；这些动作必须得到用户后续授权。
+- `liyouran` 分支记录 N0 seed 42 在 L40S 上通过：prior Macro F1 0.5493，落在历史 E2a 三种子 0.5405–0.5538 内。这证明原 CCDS 链路可复现，但不是 RTX 5090 环境的独立 N0 证明。
+- N1 代码、结果和组员 README 已推送到个人 fork。组长仓库拒绝个人账号直接 push（HTTP 403），因此应通过 Pull Request 合并，或由组长先授予 collaborator 权限。
 
 ### 项目任务与架构
 
@@ -24,7 +24,7 @@
 | 输入与目标 | `qwen` template，cutoff 384，只输出 relevance JSON |
 | 量化 | bitsandbytes 4-bit NF4；LlamaFactory v0.9.5 默认 double quantization |
 | LoRA | r=16，alpha=32，dropout=0.05，target=all linear modules |
-| batch | micro 16 × accumulation 2 = effective 32，单 GPU |
+| batch | E2a：micro 16 × accumulation 2；N1 实际：micro 1 × accumulation 32；两者 effective 32，单 GPU |
 | 优化 | lr 1e-4，cosine，warmup 0.03，1 epoch，bf16 |
 | checkpoint | 每 100 步 eval/save；按最低 `eval_loss`；训练结束加载并保存最佳模型 |
 | seeds | 42 / 43 / 44（seed 42 为 E2a，43/44 为 E5 的同配置复现） |
@@ -50,7 +50,7 @@ N1 唯一研究变量是基座改为 `Qwen/Qwen2.5-14B-Instruct`。`configs/sft/
 
 ### 风险与公平性
 
-1. A100 80GB 很可能容纳 micro 16 的 14B QLoRA，但这仍需真实 smoke 验证。OOM 时脚本停止；只允许把 micro/accum 改为乘积仍为 32的组合，并要求写理由。micro-batch 改变会影响数值与吞吐，不能称为完全等价。
+1. 预注册的 A100 80GB / micro 16 方案没有实际运行；RTX 5090 32GB 最终使用 micro 1 × accumulation 32。有效 batch 相同不代表数值与吞吐完全等价，因此必须保留偏差说明。任何新组合仍需 smoke，并要求 micro × accumulation = 32。
 2. 不允许通过缩短 cutoff、减少数据或 epoch 解决正式实验 OOM。smoke 的 `max_samples` 与短 epoch 仅用于工程验证，输出目录与 formal 隔离。
 3. bf16 必须由 `torch.cuda.is_bf16_supported()` 实测通过。
 4. LlamaFactory v0.9.5 自动从输出目录最新 checkpoint 续训；完成标记存在时脚本拒绝覆盖。
@@ -60,11 +60,13 @@ N1 唯一研究变量是基座改为 `Qwen/Qwen2.5-14B-Instruct`。`configs/sft/
 
 ## 2. GPU 与实例选择
 
-首选单卡 NVIDIA A100 80GB。选择时确认：显存是 80GB（不是 40GB）、实例带持久化数据盘、系统盘空间足够安装 venv、PyTorch 镜像能看到 CUDA。不要选择 24GB/32GB 卡作为正式 N1；A100 40GB 也不适合作为保持 micro 16 的首选。H100/H800 80GB 可作为性能更高的替代，但硬件变化应记录，且 N0 门禁仍要通过。
+预注册方案首选单卡 NVIDIA A100 80GB，以尽量保持 E2a 的 micro-batch。实际 N1 三种子实验运行于 RTX 5090 32GB；由于显存限制，统一使用 micro-batch 1、gradient accumulation 32，并保持 effective batch 32。该硬件与 micro-batch 偏差已写入每个 `run_manifest.json` 和 `reports/n1/README.md`，最终报告必须保留这项披露。
+
+后续复跑应优先复用同类环境；若更换 GPU，必须确认持久化数据盘、CUDA 可见、bf16 实测通过，并记录 GPU、driver、CUDA、PyTorch、micro-batch、gradient accumulation 和峰值显存。不要在不同 seed 之间使用不同 batch 配置。
 
 ## 3. Mac → GitHub → AutoDL
 
-N1 功能分支已推送到个人 fork `Pat7ryk/ecom-query-llm`；组长的原始实验仓库只作为上游基线，不作为 AutoDL 的克隆地址。AutoDL 从同一功能分支拉取；模型、数据、checkpoint 始终在 `$PERSIST_ROOT`，不进 Git。
+N1 功能分支已推送到个人 fork `Pat7ryk/ecom-query-llm`。在组长仓库合并 N1 PR 之前，AutoDL 应从个人 fork 的同一功能分支拉取；合并后，新环境可直接从组长仓库的 `main` 拉取。模型、数据、checkpoint 始终在 `$PERSIST_ROOT`，不进 Git。
 
 ```bash
 git clone \
@@ -73,13 +75,13 @@ git clone \
   https://github.com/Pat7ryk/ecom-query-llm.git
 cd ecom-query-llm
 git rev-parse HEAD
-# 应为本指南所在的已验证 N1 commit；租机前以个人 fork 分支最新 SHA 为准。
+# 应为本指南所在的已验证 N1 commit；复跑前以 PR/功能分支最新 SHA 为准。
 cp .env.autodl.example .env
 # 如 AutoDL 的持久化挂载点不同，只编辑 .env
 bash scripts/autodl/setup_autodl.sh
 ```
 
-预期：GPU 检查报告显示 A100 80GB、CUDA available=true、bf16_supported=true；依赖 freeze 写到持久化输出目录。
+预期：GPU 检查报告显示目标 GPU、CUDA available=true、bf16_supported=true；依赖 freeze 写到持久化输出目录。原始 N1 结果使用 RTX 5090 32GB、driver 595.71.05、CUDA 13.2、PyTorch 2.15.0。
 
 ## 4. 数据与模型
 
@@ -134,12 +136,12 @@ tail -f "$OUTPUT_ROOT/n1/run-all.log"
 
 路径默认由 `.env` 的三个 root 推导；需要挂载到其他已准备目录时，可设置 `N1_MODEL_PATH`、`N1_DATASET_DIR`、`N1_OUTPUT_DIR`（最后一个是包含所有 seed 子目录的 N1 输出根目录），无需改脚本。覆盖训练数据时必须同时设置与之匹配的 `N1_DATA_MANIFEST`；若 tune/test 也在另一位置，同时设置 `N1_TUNE_PATH`、`N1_TEST_PATH`，避免训练 manifest 与评估集合错配。
 
-如果 formal micro 16 OOM，先保留日志并停止。经团队确认后，例如改成 2×16：
+若新环境无法使用预注册的 micro-batch，先保留日志并停止。经团队确认后覆盖 batch，同时保持 effective batch 32，并写明原因。原始 RTX 5090 复跑配置为：
 
 ```bash
-export N1_MICRO_BATCH=2
-export N1_GRAD_ACCUM=16
-export N1_BATCH_OVERRIDE_REASON='A100 80GB 上 micro 16 OOM；保持 effective batch 32'
+export N1_MICRO_BATCH=1
+export N1_GRAD_ACCUM=32
+export N1_BATCH_OVERRIDE_REASON='RTX 5090 32GB：micro-batch=1，gradient accumulation=32，保持 effective batch 32'
 bash scripts/autodl/train_n1.sh 42 formal
 ```
 
@@ -160,8 +162,15 @@ bash scripts/autodl/analyze_n1.sh
 
 产出：`training_summary.json/csv`（三个种子的状态、最佳 checkpoint、eval loss、耗时、有效 batch、峰值显存），以及每 seed 的 prior report（包含 Accuracy、Macro F1、各类 P/R/F1、混淆矩阵）、raw/prior predictions、两组种子的 mean/range 与 query bootstrap、full/clean/merged、排序 AUC/AP。所有 prior bias 只由 tune 得出，再应用到 test。
 
-将真实数值填入 `reports/n1/TEMPLATE.md`，并把小型 JSON 报告复制到 Git 跟踪的 `reports/n1/`；不要提交 scores、数据、模型或 checkpoint。
+已完成的三种子摘要、prior reports、数据/模型 provenance 和结论边界位于 `reports/n1/`。后续统一重算 E2a 与稳健性分析时，在同一目录追加小型 JSON 报告并更新 `README.md` / `RESULTS.md`；不要提交 scores、逐样本预测缓存、数据、模型、完整日志或 checkpoint。
 
-## 7. 当前完成门槛
+## 7. 当前状态与剩余门槛
 
-本地工程已可进入 AutoDL 部署，但尚不能宣称“可以启动正式 N1”直到以下 GPU 门禁通过：A100/bf16 检查、数据 hash 审核、模型 revision 固定、N1 smoke、以及团队接受的 N0 环境对齐。正式训练、标签打分、统计结果、成本与最终结论全部必须等待真实 GPU。
+已完成：RTX 5090/bf16 环境检查、数据 hash 审核、模型 revision 固定、三种子正式训练、tune/test 标签打分，以及 full test 的 raw/prior 指标。三个 seed 均完成 625 steps，结果见 `reports/n1/README.md`。
+
+返回的精简结果包没有包含 N1 smoke marker 和 N0 gate/waiver 原件；这些证据应由实验负责人继续保留。最终宣称“14B 稳定优于 7B”之前仍必须：
+
+1. 获取 `e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44` 三个 adapter，并按相同 double-quant 协议重算。
+2. 完成 full/clean/merged、query-level bootstrap 95% CI 和 ranking 分析。
+3. 补齐 smoke 与 N0 gate/团队批准 waiver 的审计证据。
+4. 确认三种子范围、置信区间与噪声口径均支持预注册判定标准。

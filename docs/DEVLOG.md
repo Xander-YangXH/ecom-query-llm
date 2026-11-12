@@ -1959,3 +1959,25 @@
   - 7B 基座、全部数据、全部标签打分（`label_scores`，报告中的数字都能用 `local_cache.sh` 重算）。
   - 14 个适配器：E2a 三个种子（`e2a-1ep-best`、`e5-20k-s43/s44`）、E10 三个种子、D4 的 `3b-gold` 三个种子和测速用的 `3b-t50k-s42`、`1.5b-t50k-s42`、D5 三个种子。
 - 影响：在 CCDS 上重跑 D4，需要重新下载两个学生基座，并重装 vllm 环境。重装时 transformers 要固定为 4.57.1（P20）。
+
+---
+
+## S27 · N1：14B QLoRA 的 AutoDL 适配与预注册（2026-11-04，运行前）
+
+**研究问题**
+
+- 只把 E2a 的 Qwen2.5-7B-Instruct 换成 Qwen2.5-14B-Instruct，模型容量增加是否带来稳定提升。
+- 执行环境由原计划 NSCC 改为 AutoDL 单机单卡，优先 A100 80GB；不使用 PBS/SLURM。
+
+**预注册成功标准**
+
+- 三个种子固定为 42、43、44。数据、prompt、标签、QLoRA、LoRA 参数、学习率、epoch、有效 batch、checkpoint 选择和标签打分协议均与 E2a 一致。
+- 主要判断使用每个模型在 tune 上单独确定 prior bias 后的 test Macro F1。只有 N1 三种子稳定优于 E2a，且两组种子的范围不重叠，才称为稳定提升。
+- 同时报告 raw/prior、full/clean/merged、与偏置无关的排序指标和 query-level bootstrap 95% CI；若结论只在单一种子或单一口径成立，不算稳定提升。
+- 测试集不参与超参数、checkpoint 或偏置选择。失败和负结果如实保留。
+
+**本地工程状态**
+
+- 新增独立 N1 配置、AutoDL 环境/GPU/数据/模型/训练/打分/分析脚本、数据 hash 与 query 泄漏审计，以及空白报告模板；原 E2a 配置不修改。正式标签打分显式使用与训练相同的 NF4 double quantization，并要求把 E2a 三个种子按同一协议重打分。
+- 正式默认 micro-batch 16、梯度累积 2。若真实 A100 80GB OOM，只能在有效 batch 仍为 32、三个种子一致且记录原因的前提下调整；不减少数据、epoch 或 cutoff。
+- 当前没有租用 GPU，所以没有训练日志、显存数据、指标或实验结论。GPU 阶段开始前必须先通过环境检查、数据 manifest、模型 revision、smoke 和 N0 门禁。

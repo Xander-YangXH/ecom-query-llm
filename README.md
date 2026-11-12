@@ -217,7 +217,26 @@ flowchart LR
 - **标注审计**：每组只有 20–50 条样本，比例有抽样不确定性。组员的复核过程中讨论过少数边界案例，因此不是完全独立的第二位判断人。
 - **测试集**：只用了 ESCI 的美国英文子集；D5 的中文实验只有一个正例标注。
 
-## 8. 仓库结构与复现
+## 8. 前端演示
+
+`demo/` 是一个静态网页，演示模型放进电商搜索后能做什么。它只用模型在留出集上的真实打分，不做在线推理。
+
+- **英文搜索**：可以搜索 ESCI 测试集的 2,500 个真实搜索词。
+  - 每个商品显示模型判断（完全匹配、可替代、可搭配、不相关）和四类概率，并与人工标注对照。
+  - 完全匹配和可替代的商品排在主结果里，可搭配的进“搭配购买”栏，不相关的折叠起来。
+  - 可以开关“推理时先验调整”，页面会用 1 万条打分现场重算准确率和宏 F1（0.740 / 0.534 ↔ 0.730 / 0.549）。
+- **中文重排**：Multi-CPR 电商开发集的 1,000 个搜索词，左右对比 BM25 前 20 名和大模型重排的结果，可以切换零样本与微调模型。
+- **项目成果**：关键数字、模型在搜索链路中的位置、效果与部署速度。
+
+本地运行：
+
+```bash
+cd demo && python -m http.server 8000
+```
+
+然后打开 http://localhost:8000 。数据由 `demo/build_data.py` 从服务器上的打分生成，页面上的指标与项目报告一致。
+
+## 9. 仓库结构与复现
 
 ```
 ecom-query-llm/            实验代码、配置、脚本、报告与技术日志（保留完整提交历史）
@@ -229,6 +248,7 @@ ecom-query-llm/            实验代码、配置、脚本、报告与技术日�
   src/ecomq/               数据处理、训练数据构建、评测（打分、先验调整、噪声感知、排序、MMLU、重排、测速）
   configs/sft/             LLaMA-Factory 训练配置（默认 e2_relevance_qlora_1ep_best.yaml）
   scripts/slurm/           CCDS 作业脚本与各实验的调度脚本
+demo/                      前端演示（静态网页与数据）
 EXPERIMENT_RESULTS.md      N0 / N2 实验结果
 B3_RESULTS.md, B3/         B1–B3 人工复核结果与评分文件
 ```
@@ -241,7 +261,7 @@ B3_RESULTS.md, B3/         B1–B3 人工复核结果与评分文件
 cd ecom-query-llm && pip install -e ".[dev]" && make test
 ```
 
-## 9. Team results
+## 10. Team results
 
 - [ecom-query-llm](ecom-query-llm/README.md)：ESCI 相关性四分类的 QLoRA 微调、评测与 D1–D5 补充实验；完整技术日志见 [DEVLOG](ecom-query-llm/docs/DEVLOG.md)，结果文件在 [reports](ecom-query-llm/reports/)。
 - 实验记录：[N0 / N2 实验结果](EXPERIMENT_RESULTS.md)。

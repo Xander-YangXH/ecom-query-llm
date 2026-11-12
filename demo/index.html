@@ -1,0 +1,481 @@
+<title>电商搜索相关性演示</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a search console. Sticky header with tabs; the query bar on top; results as a shopping list on the left,
+   the model's "lens" (complements, filtered items, numbers) on the right. One column on phones. */
+:root {
+  --bg: #f5f6f4;
+  --surface: #ffffff;
+  --ink: #1c2321;
+  --muted: #5d6763;
+  --line: #dfe3df;
+  --accent: #0d6b5e;
+  --accent-soft: #e2f0ec;
+  --e: #1f7a3d;  --e-soft: #e3f2e7;
+  --s: #2a5fb0;  --s-soft: #e5edf9;
+  --c: #a8620a;  --c-soft: #fbefdd;
+  --i: #8a3a3a;  --i-soft: #f6e6e4;
+  --hit: #fff3c4;
+  --shadow: 0 1px 2px rgba(20, 35, 30, .06), 0 4px 16px rgba(20, 35, 30, .05);
+  --f-display: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --f-body: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111615; --surface: #19201e; --ink: #e6ebe8; --muted: #9aa6a1; --line: #2b3431;
+    --accent: #4fc3ad; --accent-soft: #163330;
+    --e: #6fcf8c; --e-soft: #18311f; --s: #86adf0; --s-soft: #1a2639;
+    --c: #e9a654; --c-soft: #362a17; --i: #e08d86; --i-soft: #3a2220; --hit: #3d3514;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 16px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111615; --surface: #19201e; --ink: #e6ebe8; --muted: #9aa6a1; --line: #2b3431;
+  --accent: #4fc3ad; --accent-soft: #163330;
+  --e: #6fcf8c; --e-soft: #18311f; --s: #86adf0; --s-soft: #1a2639;
+  --c: #e9a654; --c-soft: #362a17; --i: #e08d86; --i-soft: #3a2220; --hit: #3d3514;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 16px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding-block: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand b { font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: -.01em; }
+.brand span { color: var(--muted); font-size: 13px; }
+nav.tabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 7px 12px; border-radius: 8px; }
+nav.tabs a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+nav.tabs a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+main { padding-block: 24px 48px; }
+section.view { display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: 26px; font-weight: 800; }
+h2 { font-size: 17px; font-weight: 700; }
+h3 { font-size: 14px; font-weight: 700; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 70ch; }
+.eyebrow { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* query bar */
+.qbar { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.qrow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.search { position: relative; flex: 1 1 320px; min-width: 0; }
+.search input { width: 100%; font: inherit; font-size: 16px; padding: 11px 14px 11px 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 2; }
+.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); z-index: 4; max-height: 320px; overflow-y: auto; }
+.suggest button { display: block; width: 100%; text-align: left; font: inherit; padding: 8px 14px; border: 0; background: none; color: var(--ink); cursor: pointer; }
+.suggest button:hover, .suggest button.on { background: var(--accent-soft); }
+.btn { font: inherit; font-weight: 600; font-size: 14px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.chips .label { font-size: 13px; color: var(--muted); }
+.chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
+.toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; transition: background .15s; flex: none; }
+.toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: transform .15s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.toggle input:checked { background: var(--accent); }
+.toggle input:checked::after { transform: translateX(16px); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+
+/* layout */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.split.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 900px) { .split, .split.two { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* product cards */
+.list { display: grid; gap: 10px; }
+.card { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.thumb { width: 56px; height: 56px; border-radius: 10px; display: grid; place-items: center; font-family: var(--f-display); font-weight: 800; font-size: 20px; }
+.card .title { font-weight: 500; overflow-wrap: anywhere; }
+.meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.pill.e { color: var(--e); background: var(--e-soft); } .pill.s { color: var(--s); background: var(--s-soft); }
+.pill.c { color: var(--c); background: var(--c-soft); } .pill.i { color: var(--i); background: var(--i-soft); }
+.thumb.e { color: var(--e); background: var(--e-soft); } .thumb.s { color: var(--s); background: var(--s-soft); }
+.thumb.c { color: var(--c); background: var(--c-soft); } .thumb.i { color: var(--i); background: var(--i-soft); }
+.agree { color: var(--muted); }
+.agree.no { color: var(--i); font-weight: 600; }
+.bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.bar { display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
+.bar i { display: block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i b { display: block; height: 100%; }
+.bar.e i b { background: var(--e); } .bar.s i b { background: var(--s); } .bar.c i b { background: var(--c); } .bar.i i b { background: var(--i); }
+.empty { padding: 14px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); font-size: 14px; }
+details.filtered summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.filtered .list { margin-top: 10px; }
+.stat-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat-row.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 560px) { .stat-row.three { grid-template-columns: minmax(0, 1fr); } }
+.stat { padding: 10px 12px; border-radius: 10px; background: var(--bg); }
+.stat .v { font-family: var(--f-mono); font-size: 20px; font-weight: 600; }
+.stat .k { font-size: 12px; color: var(--muted); }
+
+/* zh rerank */
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+ol.rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ol.rank li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); font-size: 14px; }
+ol.rank li .r { font-family: var(--f-mono); color: var(--muted); font-size: 13px; padding-top: 1px; }
+ol.rank li .t { overflow-wrap: anywhere; }
+ol.rank li .sc { font-family: var(--f-mono); font-size: 12px; color: var(--muted); white-space: nowrap; padding-top: 2px; }
+ol.rank li.pos { background: var(--hit); border-color: var(--c); }
+ol.rank li.pos .t::after { content: "  标注的正确商品"; font-size: 12px; font-weight: 600; color: var(--c); }
+.move { font-family: var(--f-display); font-weight: 800; font-size: 15px; }
+.move.up { color: var(--e); } .move.down { color: var(--i); }
+
+/* results tab */
+.intro { display: grid; gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 4px; align-content: start; }
+.tile .v { font-family: var(--f-display); font-weight: 800; font-size: 28px; letter-spacing: -.02em; }
+.tile .v small { font-size: 15px; color: var(--muted); font-weight: 700; }
+.tile .k { font-size: 13px; color: var(--muted); }
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+@media (max-width: 760px) { .flow { grid-template-columns: minmax(0, 1fr); } }
+.step { padding: 14px; border: 1px solid var(--line); background: var(--surface); position: relative; display: grid; gap: 4px; align-content: start; }
+.step:first-child { border-radius: 12px 0 0 12px; } .step:last-child { border-radius: 0 12px 12px 0; }
+@media (max-width: 760px) { .step:first-child { border-radius: 12px 12px 0 0; } .step:last-child { border-radius: 0 0 12px 12px; } }
+.step.model { background: var(--accent-soft); border-color: var(--accent); }
+.step .n { font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
+td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.best td { font-weight: 600; }
+footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><b>搜索相关性助手</b><span>Qwen2.5-7B + QLoRA · AI6130 Track A</span></div>
+    <nav class="tabs" aria-label="页面">
+      <a href="#search" data-view="search">英文搜索</a>
+      <a href="#rerank" data-view="rerank">中文重排</a>
+      <a href="#results" data-view="results">项目成果</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- English search -->
+  <section class="view" id="view-search">
+    <div class="qbar">
+      <div class="qrow">
+        <div class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input id="en-q" type="search" autocomplete="off" placeholder="搜索 2,500 个真实 Amazon 搜索词，例如 dyson hair dryer" aria-label="搜索词">
+          <div class="suggest" id="en-suggest" hidden></div>
+        </div>
+        <button class="btn" id="en-random" type="button">随机一个</button>
+        <button class="btn" id="en-dispute" type="button">看一个模型与标注不一致的例子</button>
+      </div>
+      <div class="chips" id="en-chips"><span class="label">示例：</span></div>
+      <div class="qrow">
+        <label class="toggle"><input type="checkbox" id="en-prior" checked> 推理时先验调整</label>
+        <span class="small muted" id="en-bias-note"></span>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="eyebrow">搜索结果 · 按模型判断重排</div><h2 id="en-title">—</h2></div>
+          <span class="small muted" id="en-agree"></span>
+        </div>
+        <div class="list" id="en-main"></div>
+        <details class="filtered" id="en-filtered-box">
+          <summary id="en-filtered-sum">已过滤的不相关商品</summary>
+          <div class="list" id="en-filtered"></div>
+        </details>
+      </div>
+      <aside class="panel">
+        <div><div class="eyebrow">搭配购买</div><h2>模型判为“可搭配”的商品</h2></div>
+        <div class="list" id="en-comp"></div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="en-acc">—</div><div class="k">测试集准确率（1 万条）</div></div>
+          <div class="stat"><div class="v" id="en-f1">—</div><div class="k">测试集宏 F1</div></div>
+        </div>
+        <p class="small muted">两个数字随“推理时先验调整”开关一起变化，在浏览器里用全部 1 万条打分现场重算。</p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Chinese rerank -->
+  <section class="view" id="view-rerank" hidden>
+    <div class="qbar">
+      <div class="qrow">
+        <div class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input id="zh-q" type="search" autocomplete="off" placeholder="搜索 1,000 个淘宝搜索词，例如 北极虾仁" aria-label="中文搜索词">
+          <div class="suggest" id="zh-suggest" hidden></div>
+        </div>
+        <button class="btn" id="zh-random" type="button">随机一个</button>
+        <div class="seg" role="group" aria-label="重排模型">
+          <button type="button" id="zh-m-ft" aria-pressed="true">微调 7B</button>
+          <button type="button" id="zh-m-zs" aria-pressed="false">零样本 7B</button>
+        </div>
+      </div>
+      <div class="chips" id="zh-chips"><span class="label">示例：</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><div class="eyebrow">BM25 召回前 20 名 → 大模型重排</div><h2 id="zh-title">—</h2></div>
+        <span class="move" id="zh-move"></span>
+      </div>
+      <div class="cols">
+        <div><h3>BM25 原始顺序</h3><ol class="rank" id="zh-bm25"></ol></div>
+        <div><h3 id="zh-model-h">模型重排后</h3><ol class="rank" id="zh-model"></ol></div>
+      </div>
+      <p class="small muted">分数 = log p(相关) − log p(不相关)。每个搜索词只标注了一个正确商品，其余候选里也可能有其实相关的商品。</p>
+    </div>
+    <div class="stat-row three">
+      <div class="stat"><div class="v num" id="zh-mrr-bm25">—</div><div class="k">BM25 · MRR@10（1,000 个词）</div></div>
+      <div class="stat"><div class="v num" id="zh-mrr-zs">—</div><div class="k">零样本 7B · MRR@10</div></div>
+      <div class="stat"><div class="v num" id="zh-mrr-ft">—</div><div class="k">微调 7B · MRR@10</div></div>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <section class="view" id="view-results" hidden>
+    <div class="intro">
+      <div class="eyebrow">NTU AI6130 · Track A：LLM 的实际应用</div>
+      <h1>把开源大模型做成电商搜索的相关性判别器</h1>
+      <p class="lede">输入用户的搜索词和一个商品，模型判断两者是“完全匹配、可替代、可搭配、不相关”中的哪一种。模型放在召回之后、展示之前，用来重排结果、过滤无关商品，并把可搭配的商品放进推荐位。</p>
+    </div>
+    <div class="tiles">
+      <div class="tile"><div class="v">0.384 <small>→</small> 0.548</div><div class="k">宏 F1：零样本 → 微调 + 先验调整（3 个种子均值）</div></div>
+      <div class="tile"><div class="v">47<small>×</small></div><div class="k">3B 蒸馏版 + vLLM 每秒 399 条，宏 F1 只低 3.1 个百分点</div></div>
+      <div class="tile"><div class="v">0.735 <small>=</small> 0.735</div><div class="k">MMLU 微调前后不变：不伤通用能力</div></div>
+      <div class="tile"><div class="v">0.256 <small>→</small> 0.346</div><div class="k">中文重排 MRR@10：零样本 → 微调</div></div>
+    </div>
+    <div class="panel">
+      <h2>模型在搜索链路中的位置</h2>
+      <div class="flow">
+        <div class="step"><span class="n">1</span><h3>召回</h3><p class="small muted">BM25 或向量检索取前 20–100 个商品</p></div>
+        <div class="step model"><span class="n">2</span><h3>相关性判别（本项目）</h3><p class="small">每个候选输出四类的对数概率，再加先验偏置</p></div>
+        <div class="step"><span class="n">3</span><h3>重排与分流</h3><p class="small muted">完全匹配在前、可替代其次；可搭配进推荐位；不相关降权</p></div>
+        <div class="step"><span class="n">4</span><h3>展示与质检</h3><p class="small muted">与人工标注长期相反的样本送人工复核</p></div>
+      </div>
+    </div>
+    <div class="split two">
+      <div class="panel">
+        <h2>效果（ESCI 测试集，2,500 个词、1 万条）</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>方案</th><th class="n">准确率</th><th class="n">宏 F1</th></tr></thead>
+          <tbody>
+            <tr><td>基座零样本</td><td class="n">0.550</td><td class="n">0.384</td></tr>
+            <tr><td>QLoRA 微调 1 个 epoch</td><td class="n">0.739</td><td class="n">0.535</td></tr>
+            <tr class="best"><td>+ 推理时先验调整（推荐）</td><td class="n">0.728</td><td class="n">0.548</td></tr>
+            <tr><td>+ C、I 各追加 1,500 条</td><td class="n">0.728</td><td class="n">0.551</td></tr>
+            <tr><td>3B 蒸馏版（部署用）</td><td class="n">0.723</td><td class="n">0.517</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small muted">均为 3 个种子的均值（前两行为单次）。只有种子范围不重叠才算稳定提升，后两行与推荐方案的差别不算稳定。</p>
+      </div>
+      <div class="panel">
+        <h2>部署速度（单卡 L40S）</h2>
+        <div class="tbl"><table>
+          <thead><tr><th>方式</th><th class="n">条/秒</th><th class="n">单条延迟</th></tr></thead>
+          <tbody>
+            <tr><td>7B，4 个候选各打分一次</td><td class="n">8.5</td><td class="n">—</td></tr>
+            <tr><td>7B，只看第一个不同的 token</td><td class="n">35.0</td><td class="n">60 ms</td></tr>
+            <tr><td>3B，只看第一个不同的 token</td><td class="n">61.6</td><td class="n">34 ms</td></tr>
+            <tr class="best"><td>3B + vLLM</td><td class="n">398.6</td><td class="n">14.5 ms</td></tr>
+            <tr><td>1.5B + vLLM</td><td class="n">762.4</td><td class="n">9.2 ms</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small muted">4 个标签在第一个不同的 token 之前完全相同，所以一次前向就能比较 4 个标签。</p>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>演示数据从哪里来</h2>
+      <p class="small">“英文搜索”和“中文重排”展示的都是模型在留出集上的真实打分，没有一条是挑选或改写过的：ESCI 测试集 2,500 个搜索词（每个 4 个商品，模型为 E2a seed 42），Multi-CPR 电商开发集 1,000 个搜索词（每个 BM25 前 20 名，零样本与微调 seed 42）。页面里的准确率、宏 F1 和 MRR 都在浏览器里从这些打分现场计算，与项目报告一致。模型本身需要 GPU，所以这里不做在线推理。</p>
+    </div>
+  </section>
+</main>
+<footer class="wrap">数据：Amazon Shopping Queries Dataset（ESCI）、Multi-CPR（电商子集）。代码与技术日志：NTU-AI6130-LLM-Project 仓库的 ecom-query-llm 目录。</footer>
+
+<script>
+(() => {
+  const L = ["exact", "substitute", "complement", "irrelevant"];
+  const ZH = { exact: "完全匹配", substitute: "可替代", complement: "可搭配", irrelevant: "不相关" };
+  const K = ["e", "s", "c", "i"];
+  const EN_EX = ["dyson hhair dryer", "apple ipad pro 10,5", "xbox one controller wireless ps3", "excalibur 5 tray dehydrator",
+                 "snake plant live", "gummy vitamins without iron", "kids kindle fire tablet", "medical clogs for women"];
+  const ZH_EX = ["北极虾仁", "冬天四件套礼物", "dkny行李箱", "lee棒球服男", "玉米面狗粮", "尚为智能护眼台灯", "c63方向盘", "粽叶茶"];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  let EN = null, ZHD = null, enCur = 0, zhCur = 0, zhModel = 3;
+
+  // ---------- views ----------
+  const views = ["search", "rerank", "results"];
+  function show() {
+    const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : "search";
+    views.forEach(n => { $("view-" + n).hidden = n !== v; });
+    document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === v ? "page" : "false"));
+  }
+  window.addEventListener("hashchange", show); show();
+
+  // ---------- shared search box ----------
+  function wireSearch(input, box, list, pick) {
+    let on = -1, hits = [];
+    const close = () => { box.hidden = true; on = -1; };
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      if (!q) { close(); return; }
+      hits = [];
+      for (let i = 0; i < list().length && hits.length < 8; i++) if (list()[i].q.toLowerCase().includes(q)) hits.push(i);
+      box.innerHTML = hits.length ? hits.map((i, j) => `<button type="button" data-i="${i}" class="${j === on ? "on" : ""}">${esc(list()[i].q)}</button>`).join("")
+                                  : `<div class="empty">没有找到包含“${esc(input.value)}”的搜索词</div>`;
+      box.hidden = false;
+    });
+    box.addEventListener("mousedown", e => { const b = e.target.closest("button"); if (b) { e.preventDefault(); pick(+b.dataset.i); close(); } });
+    input.addEventListener("keydown", e => {
+      if (box.hidden || !hits.length) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault(); on = (on + (e.key === "ArrowDown" ? 1 : -1) + hits.length) % hits.length;
+        box.querySelectorAll("button").forEach((b, j) => b.classList.toggle("on", j === on));
+      } else if (e.key === "Enter") { e.preventDefault(); pick(hits[on < 0 ? 0 : on]); close(); }
+      else if (e.key === "Escape") close();
+    });
+    input.addEventListener("blur", () => setTimeout(close, 100));
+  }
+  function chips(el, names, list, pick) {
+    names.forEach(n => {
+      const i = list.findIndex(q => q.q === n); if (i < 0) return;
+      const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = n;
+      b.addEventListener("click", () => pick(i)); el.appendChild(b);
+    });
+  }
+
+  // ---------- English ----------
+  const bias = () => $("en-prior").checked ? EN.bias : [0, 0, 0, 0];
+  function predict(lp, b) {
+    const s = lp.map((v, j) => v + b[j]);
+    let m = 0; for (let j = 1; j < 4; j++) if (s[j] > s[m]) m = j;
+    const mx = s[m], ex = s.map(v => Math.exp(v - mx)), z = ex.reduce((a, c) => a + c, 0);
+    return { label: m, p: ex.map(v => v / z) };
+  }
+  function card(item, b) {
+    const [title, gold, lp] = item, pr = predict(lp, b), k = K[pr.label], ok = pr.label === gold;
+    const bars = L.map((l, j) => `<div class="bar ${K[j]}"><span>${ZH[l]} <span class="num">${Math.round(pr.p[j] * 100)}%</span></span><i><b style="width:${(pr.p[j] * 100).toFixed(1)}%"></b></i></div>`).join("");
+    return `<article class="card"><div class="thumb ${k}" aria-hidden="true">${ZH[L[pr.label]][0]}</div><div style="min-width:0">
+      <div class="title">${esc(title)}</div>
+      <div class="meta"><span class="pill ${k}">模型：${ZH[L[pr.label]]} ${Math.round(pr.p[pr.label] * 100)}%</span>
+      <span class="agree ${ok ? "" : "no"}">人工标注：${ZH[L[gold]]}${ok ? "，一致" : "，不一致"}</span></div>
+      <div class="bars">${bars}</div></div></article>`;
+  }
+  function renderEN() {
+    if (!EN) return;
+    const q = EN.queries[enCur], b = bias();
+    const rows = q.items.map(it => ({ it, pr: predict(it[2], b) }));
+    const order = r => r.pr.label * 10 - r.pr.p[r.pr.label];
+    const main = rows.filter(r => r.pr.label <= 1).sort((a, c) => order(a) - order(c));
+    const comp = rows.filter(r => r.pr.label === 2), irr = rows.filter(r => r.pr.label === 3);
+    $("en-title").textContent = q.q;
+    $("en-main").innerHTML = main.length ? main.map(r => card(r.it, b)).join("") : `<div class="empty">模型认为这 4 个商品都不是用户要找的。</div>`;
+    $("en-comp").innerHTML = comp.length ? comp.map(r => card(r.it, b)).join("") : `<div class="empty">这个搜索词没有可搭配的商品。</div>`;
+    $("en-filtered").innerHTML = irr.map(r => card(r.it, b)).join("");
+    $("en-filtered-box").hidden = !irr.length;
+    $("en-filtered-sum").textContent = `已过滤 ${irr.length} 个不相关商品`;
+    const agree = rows.filter(r => r.pr.label === r.it[1]).length;
+    $("en-agree").textContent = `4 个商品中 ${agree} 个与人工标注一致`;
+    $("en-q").value = q.q;
+  }
+  function renderENStats() {
+    const b = bias(), cm = L.map(() => [0, 0, 0, 0]);
+    let n = 0, ok = 0;
+    for (const q of EN.queries) for (const it of q.items) { const p = predict(it[2], b).label; cm[it[1]][p]++; n++; ok += p === it[1]; }
+    const f1 = L.map((_, c) => { const tp = cm[c][c], fp = cm.reduce((a, r, g) => a + (g === c ? 0 : r[c]), 0), fn = cm[c].reduce((a, v) => a + v, 0) - tp;
+      return tp ? 2 * tp / (2 * tp + fp + fn) : 0; });
+    $("en-acc").textContent = (ok / n).toFixed(3);
+    $("en-f1").textContent = (f1.reduce((a, v) => a + v, 0) / 4).toFixed(3);
+    $("en-bias-note").textContent = $("en-prior").checked
+      ? `偏置（只在调参集上选定）：可替代 +${EN.bias[1]}，可搭配 +${EN.bias[2]}，不相关 +${EN.bias[3]}`
+      : "关闭后直接取 4 个标签中对数概率最大的一个";
+  }
+  function pickEN(i) { enCur = i; renderEN(); }
+  $("en-prior").addEventListener("change", () => { renderEN(); renderENStats(); });
+  $("en-random").addEventListener("click", () => pickEN(Math.floor(Math.random() * EN.queries.length)));
+  $("en-dispute").addEventListener("click", () => {
+    const b = bias(), pool = [];
+    EN.queries.forEach((q, i) => { if (q.items.some(it => { const pr = predict(it[2], b); return pr.label !== it[1] && pr.p[pr.label] > .8; })) pool.push(i); });
+    if (pool.length) pickEN(pool[Math.floor(Math.random() * pool.length)]);
+  });
+
+  // ---------- Chinese ----------
+  function mrrAll(k) {
+    let s = 0;
+    for (const q of ZHD.queries) {
+      const idx = q.items.map((_, i) => i);
+      if (k) idx.sort((a, b) => q.items[b][k] - q.items[a][k] || a - b);
+      const r = idx.slice(0, 10).findIndex(i => q.items[i][1]);
+      if (r >= 0) s += 1 / (r + 1);
+    }
+    return (s / ZHD.queries.length).toFixed(3);
+  }
+  function li(it, rank, score) {
+    return `<li class="${it[1] ? "pos" : ""}"><span class="r">${rank}</span><span class="t">${esc(it[0])}</span>${score == null ? "" : `<span class="sc">${score.toFixed(2)}</span>`}</li>`;
+  }
+  function renderZH() {
+    if (!ZHD) return;
+    const q = ZHD.queries[zhCur], k = zhModel;
+    const idx = q.items.map((_, i) => i).sort((a, b) => q.items[b][k] - q.items[a][k] || a - b);
+    $("zh-title").textContent = q.q; $("zh-q").value = q.q;
+    $("zh-bm25").innerHTML = q.items.map((it, i) => li(it, i + 1, null)).join("");
+    $("zh-model").innerHTML = idx.map((i, r) => li(q.items[i], r + 1, q.items[i][k])).join("");
+    $("zh-model-h").textContent = (k === 3 ? "微调 7B" : "零样本 7B") + " 重排后";
+    const p = q.items.findIndex(it => it[1]), mv = $("zh-move");
+    if (p < 0) { mv.textContent = "正确商品不在 BM25 前 20 名里"; mv.className = "move small muted"; return; }
+    const nr = idx.indexOf(p) + 1, d = p + 1 - nr;
+    mv.textContent = `正确商品：第 ${p + 1} 名 → 第 ${nr} 名`;
+    mv.className = "move " + (d > 0 ? "up" : d < 0 ? "down" : "");
+  }
+  function pickZH(i) { zhCur = i; renderZH(); }
+  function setModel(k) { zhModel = k; $("zh-m-ft").setAttribute("aria-pressed", k === 3); $("zh-m-zs").setAttribute("aria-pressed", k === 2); renderZH(); }
+  $("zh-m-ft").addEventListener("click", () => setModel(3));
+  $("zh-m-zs").addEventListener("click", () => setModel(2));
+  $("zh-random").addEventListener("click", () => {
+    const pool = ZHD.queries.map((q, i) => i).filter(i => ZHD.queries[i].items.some(it => it[1]));
+    pickZH(pool[Math.floor(Math.random() * pool.length)]);
+  });
+
+  // ---------- load ----------
+  $("en-main").innerHTML = `<div class="empty">正在加载 1 万条打分…</div>`;
+  fetch("data/en.json").then(r => r.json()).then(d => {
+    EN = d;
+    wireSearch($("en-q"), $("en-suggest"), () => EN.queries, pickEN);
+    chips($("en-chips"), EN_EX, EN.queries, pickEN);
+    enCur = Math.max(0, EN.queries.findIndex(q => q.q === EN_EX[0]));
+    renderEN(); renderENStats();
+  }).catch(() => { $("en-main").innerHTML = `<div class="empty">数据没有加载出来。本地打开时请在 demo 目录运行 python -m http.server，再访问 http://localhost:8000。</div>`; });
+  fetch("data/zh.json").then(r => r.json()).then(d => {
+    ZHD = d;
+    wireSearch($("zh-q"), $("zh-suggest"), () => ZHD.queries, pickZH);
+    chips($("zh-chips"), ZH_EX, ZHD.queries, pickZH);
+    zhCur = Math.max(0, ZHD.queries.findIndex(q => q.q === ZH_EX[0]));
+    $("zh-mrr-bm25").textContent = mrrAll(null); $("zh-mrr-zs").textContent = mrrAll(2); $("zh-mrr-ft").textContent = mrrAll(3);
+    renderZH();
+  }).catch(() => {});
+})();
+</script>

@@ -1,0 +1,259 @@
+{
+  "total_rows": 263562,
+  "by_task": {
+    "Answer_Generation": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    },
+    "Answerability_Prediction": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    },
+    "Attribute_Value_Extraction": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    },
+    "Multiclass_Product_Classification": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000
+    },
+    "Product_Matching": {
+      "IND_Diverse_Instruction/test": 253,
+      "IND_Diverse_Instruction/train": 2022,
+      "IND_Diverse_Instruction/val": 253,
+      "IND_Diverse_Instruction_1-shot/test": 253,
+      "IND_Single_Instruction/test": 253,
+      "IND_Single_Instruction/train": 2022,
+      "IND_Single_Instruction/val": 253,
+      "IND_Unseen_Instruction/test": 253
+    },
+    "Product_Relation_Prediction": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    },
+    "Product_Substitute_Identification": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000
+    },
+    "Query_Product_Rank": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000
+    },
+    "Sentiment_Analysis": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    },
+    "Sequential_Recommendation": {
+      "IND_Diverse_Instruction/test": 1000,
+      "IND_Diverse_Instruction/train": 10000,
+      "IND_Diverse_Instruction/val": 1000,
+      "IND_Diverse_Instruction_1-shot/test": 1000,
+      "IND_Single_Instruction/test": 1000,
+      "IND_Single_Instruction/train": 10000,
+      "IND_Single_Instruction/val": 1000,
+      "IND_Unseen_Instruction/test": 1000,
+      "OOD_Diverse_Instruction/test": 1000,
+      "OOD_Diverse_Instruction_1-shot/test": 1000,
+      "OOD_Single_Instruction/test": 1000,
+      "OOD_Unseen_Instruction/test": 1000
+    }
+  },
+  "examples": {
+    "Multiclass_Product_Classification": {
+      "instruction": "What is the relevance between the query and the product title below? Answer from one of the options.",
+      "input": "{\"query\": \"fathers christmas gift\", \"product title\": \"RAK Magnetic Wristband - Men & Women's Tool Bracelet with 10 Strong Magnets to Hold Screws, Nails and Drilling Bits - Gift Ideas for Dad, Husband, Handyman or Handy Woman\"}",
+      "options": "[\"A: The product is relevant to the query, and satisfies all the query specifications.\", \"B: The product is somewhat relevant. It fails to fulfill some aspects of the query but the product can be used as a functional substitute.\", \"C: The product does not fulfill the query, but could be used in combination with a product exactly matching the query.\", \"D: The product is irrelevant to the query.\"]",
+      "output": "A: The product is relevant to the query, and satisfies all the query specifications.",
+      "setting": "IND_Single_Instruction",
+      "split": "train"
+    },
+    "Answerability_Prediction": {
+      "instruction": "Output yes if the supporting document can answer the given question. Otherwise, output no.",
+      "input": "{\"question\": \"can i place a few ashes of my late husband?\", \"document\": [\"Would love to rate but husband hasn't let me use them said I will start a fire ...waiting for opportunity\", \"I bought these to use on New Years Eve. My husband and I snuck outside around 9:00 to test them out before announcing to the crowd what we were up to (didn't want to set up our 5-year-olds for a big disappointment.) A",
+      "options": null,
+      "output": "no",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    },
+    "Product_Relation_Prediction": {
+      "instruction": "Analyze the titles of Product 1 and Product 2 to determine if they are similar, if they will be purchased or viewed together, and choose the corresponding option.",
+      "input": "{\"Product 1:\": \"Duralex Amalfi Glasses 1004AC04/4, Set of 4, 6 oz.\", \"Product 2:\": \"Duralex Made In France Provence Glass Tumbler (Set of 6), 3.125 oz, Clear\"}",
+      "options": "[\"A: Users who buy product 1 may also buy product 2.\", \"B: Users who view product 1 may also view product 2.\", \"C: The product 1 is similar with the product 2.\"]",
+      "output": "B",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    },
+    "Sequential_Recommendation": {
+      "instruction": "Given the products the user has purchased in history, rank the items in the listed options and output the item that the user is most likely to purchase next. Answer from one of the options.",
+      "input": "['1st: UTG Shooter\\'s Competition Bipod, Rubber Feed, Height 5.1\". Sports & Outdoors. Sports & Fitness. UTG.', '2nd: Heavy Duty Gym Doorway Chin-up Pull-up Bar - Extreme Workout - With NEW Door Frame protection FEATURE. Sports & Outdoors. Sports & Fitness. Halter.']",
+      "options": "['A: Queen Size - Otis Haley 110 Futon Mattress. Home & Kitchen. Furniture. Otis Bed.', 'B: ANDI ROSE 36PCS Photo Booth Props Accessories Glass Cap Moustache Lips With Stick For Wedding Birthday Party. Home & Kitchen. Event & Party Supplies. ANDI...', 'C: Hefty 13 Gallon Step On Trash Can - Bronze (1). Home & Kitchen. Storage & Organization. Hefty.', 'D: Gift for Brother Best Brother Ever Birthday",
+      "output": "H",
+      "setting": "IND_Single_Instruction",
+      "split": "train"
+    },
+    "Product_Substitute_Identification": {
+      "instruction": "Check if a product can function as a substitute for a given query, even if it doesn't fully meet all requirements. Output yes if it can or no otherwise.",
+      "input": "{\"query\": \"casual men slip ontommy hilfiger\", \"product\": \"Tommy Hilfiger Women's Lucey Sneaker, White, 10\"}",
+      "options": null,
+      "output": "no",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    },
+    "Sentiment_Analysis": {
+      "instruction": "Given the user's review, identify the user's sentiment from the listed options. Answer using one of the options.",
+      "input": "This is the second Sigg I've had. The first lasted 8 years or so before I finally dropped it one too many times and a hole got punched in the bottom. I fully expect this one to last just as long.",
+      "options": "[\"A: very positive\", \"B: positive\", \"C: neutral\", \"D: negative\", \"E: very negative\"]",
+      "output": "A: very positive",
+      "setting": "IND_Single_Instruction",
+      "split": "train"
+    },
+    "Attribute_Value_Extraction": {
+      "instruction": "Extract the value of the target attribute from the given product information and output it along with the corresponding source.",
+      "input": "{\"product title\": \"Walnuts Og2 Hvs/Pcs 5 LB by Bulk Nuts\", \"product description\": \"A very common ingredient found in many baking items., Statements regarding dietary supplements have not been evaluated by the FDA and are not intended to diagnose, treat, cure, or prevent any disease or health condition.\", \"product price\": \"$102.58\", \"product brand\": \"Nuts\", \"target attributes\": \"Preparation\"}",
+      "options": null,
+      "output": "[{\"attribute\": \"preparation\", \"value\": \"None\", \"source\": \"None\"}]",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    },
+    "Answer_Generation": {
+      "instruction": "Generate an answer to the question by utilizing the information contained in the document.",
+      "input": "{\"question\": \"Does this product (and its magnet) screw up the GPS? I have iPhone 5s and heavily use Google map to go places. Thanks.\", \"document\": [\"First purchased this product from my local hardware store for myself. Directions are clear about how to mount properly. All products for the mounting are proved. It has stayed securely adhered to my iPhone case and the car dashboard (over three months",
+      "options": null,
+      "output": "Since I attached the magnet the compass still works OK but the directional arrow on google maps rotates randomly, makes it very difficult to know which way your traveling. After I removed the magnet the phone still acts the same way.I can't be sure if the magnet  was the cause but its pretty broken now and it may be as its quite an old iPhone 4S or that the magnet permanently damaged it, hope this",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    },
+    "Query_Product_Rank": {
+      "instruction": "Given a query and a list of products denoted as A, B, C, ... with their titles, rank the products according to their relevance to the query. Output only a ranked list in which the most relevant product is at the top of the list.",
+      "input": "{\"query\": \"10x10 replacement top without peak pole\", \"product list\": [\"A: ABCCANOPY Sand Bags Canopy Tent Weights,4 Pack (Black)\", \"B: Strong Camel 10'x20' Carport Replacement Canopy Cover for Tent Top Garage Shelter Cover with Ball Bungees (Only Cover, Frame is not Included)\"]}",
+      "options": null,
+      "output": "A,B",
+      "setting": "IND_Single_Instruction",
+      "split": "train"
+    },
+    "Product_Matching": {
+      "instruction": "Given the title, description, manufacturer, and price of two products, identify if they are the same product. Only output yes or no.",
+      "input": "{\"product 1\": {\"title\": \"mac os x server v10.4.7 10-client\", \"description\": \"mac os x server offers more than 200 new features for the advanced server user. it has everything you need to provide standards-based workgroups and internet services plus builds of the latest open source projects. enable secure and efficient collaboration. host dynamic websites stream media and run enterprise application",
+      "options": null,
+      "output": "no",
+      "setting": "IND_Diverse_Instruction",
+      "split": "train"
+    }
+  },
+  "esci_test_queries": 600,
+  "overlap_with_esci_test": {
+    "Multiclass_Product_Classification/test": {
+      "rows": 4000,
+      "overlap_rows": 76,
+      "overlap_queries": 17
+    },
+    "Multiclass_Product_Classification/train": {
+      "rows": 20000,
+      "overlap_rows": 0,
+      "overlap_queries": 0
+    },
+    "Multiclass_Product_Classification/val": {
+      "rows": 2000,
+      "overlap_rows": 58,
+      "overlap_queries": 27
+    },
+    "Product_Substitute_Identification/test": {
+      "rows": 4000,
+      "overlap_rows": 104,
+      "overlap_queries": 26
+    },
+    "Product_Substitute_Identification/train": {
+      "rows": 20000,
+      "overlap_rows": 0,
+      "overlap_queries": 0
+    },
+    "Product_Substitute_Identification/val": {
+      "rows": 2000,
+      "overlap_rows": 46,
+      "overlap_queries": 21
+    },
+    "Query_Product_Rank/test": {
+      "rows": 4000,
+      "overlap_rows": 88,
+      "overlap_queries": 19
+    },
+    "Query_Product_Rank/train": {
+      "rows": 20000,
+      "overlap_rows": 0,
+      "overlap_queries": 0
+    },
+    "Query_Product_Rank/val": {
+      "rows": 2000,
+      "overlap_rows": 44,
+      "overlap_queries": 20
+    }
+  }
+}

@@ -6,3 +6,7 @@
 - **Project Type** (choose one):
   - [ ] Track A: An application of LLMs for real-world applications
   - [ ] Track B: A new architecture / new techniques for training / finetuning LLMs
+
+## yxh 分支
+
+- [ecom-query-llm](ecom-query-llm/README.md)：ESCI 相关性四分类的 QLoRA 微调、评测与 D1–D5 补充实验；完整技术日志见 [DEVLOG](ecom-query-llm/docs/DEVLOG.md)，结果文件在 [reports](ecom-query-llm/reports/)。

@@ -1,0 +1,32 @@
+#!/bin/bash
+# 提交：qsub -v MODEL=Qwen2.5-7B-Instruct,RUN=qwen7b-lora-r16,LORA=1 scripts/pbs/eval.pbs
+# LORA=1 表示加载 $OUTPUT_ROOT/$RUN 作为适配器；不设则评测基座。资源行为占位，请按 NSCC 文档修改。
+#PBS -N ecomq-eval
+#PBS -P <your-project-id>
+#PBS -q <queue-name>
+#PBS -l select=1:ncpus=16:ngpus=1:mem=120gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o logs/
+
+set -euo pipefail
+cd "${PBS_O_WORKDIR:?}"
+mkdir -p logs reports
+
+set -a; source .env; set +a
+source .venv/bin/activate
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+
+: "${MODEL:?}"; : "${RUN:?}"
+PRED="$OUTPUT_ROOT/preds/$RUN.jsonl"
+LORA_ARG=()
+[ -n "${LORA:-}" ] && LORA_ARG=(--lora "$OUTPUT_ROOT/$RUN")
+
+python -m ecomq.eval.generate \
+  --model "$MODEL_ROOT/$MODEL" ${LORA_ARG[@]+"${LORA_ARG[@]}"} \
+  --test "$DATA_ROOT/splits/test.jsonl" --output "$PRED"
+
+# 指标 JSON 很小，写进 reports/ 后可以 git 提交，在本地同步查看
+python -m ecomq.eval.score --test "$DATA_ROOT/splits/test.jsonl" --preds "$PRED" \
+  --output "reports/$RUN.json"

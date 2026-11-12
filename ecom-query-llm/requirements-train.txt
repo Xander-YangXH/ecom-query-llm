@@ -1,0 +1,9 @@
+# 仅在远端训练环境安装。版本请在远端按当前可用版本确认，并在跑通后用 pip freeze 锁定。
+# 先安装与集群 CUDA 匹配的 PyTorch，再装下面这些。
+llamafactory
+deepspeed
+vllm
+accelerate
+peft
+trl
+wandb

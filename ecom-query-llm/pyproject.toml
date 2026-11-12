@@ -1,0 +1,21 @@
+[project]
+name = "ecomq"
+version = "0.1.0"
+description = "电商搜索相关性判断（ESCI）：Qwen2.5-7B QLoRA 微调与评测"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+synth = ["openai"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

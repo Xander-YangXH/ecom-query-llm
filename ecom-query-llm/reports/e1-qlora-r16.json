@@ -1,0 +1,72 @@
+{
+  "relevance": {
+    "n": 2400,
+    "format_valid_rate": 1.0,
+    "accuracy": 0.6770833333333334,
+    "macro_f1": 0.5138208918998705,
+    "per_class": {
+      "exact": {
+        "precision": 0.8309143686502177,
+        "recall": 0.7618097139055223,
+        "f1": 0.7948628948281846,
+        "support": 1503
+      },
+      "substitute": {
+        "precision": 0.479002624671916,
+        "recall": 0.6336805555555556,
+        "f1": 0.5455904334828101,
+        "support": 576
+      },
+      "complement": {
+        "precision": 0.3673469387755102,
+        "recall": 0.24,
+        "f1": 0.2903225806451613,
+        "support": 75
+      },
+      "irrelevant": {
+        "precision": 0.4597156398104265,
+        "recall": 0.3943089430894309,
+        "f1": 0.424507658643326,
+        "support": 246
+      }
+    },
+    "gold_distribution": {
+      "substitute": 576,
+      "exact": 1503,
+      "irrelevant": 246,
+      "complement": 75
+    },
+    "pred_distribution": {
+      "exact": 1378,
+      "substitute": 762,
+      "complement": 49,
+      "irrelevant": 211
+    },
+    "confusion": {
+      "substitute": {
+        "exact": 155,
+        "substitute": 365,
+        "irrelevant": 47,
+        "complement": 9
+      },
+      "exact": {
+        "exact": 1145,
+        "substitute": 293,
+        "irrelevant": 51,
+        "complement": 14
+      },
+      "irrelevant": {
+        "substitute": 88,
+        "exact": 53,
+        "complement": 8,
+        "irrelevant": 97
+      },
+      "complement": {
+        "complement": 18,
+        "substitute": 16,
+        "irrelevant": 16,
+        "exact": 25
+      }
+    }
+  }
+}

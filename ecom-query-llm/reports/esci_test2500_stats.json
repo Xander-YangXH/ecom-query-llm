@@ -1,0 +1,40 @@
+{
+  "source": "ESCI us large_version",
+  "per_query": 4,
+  "seed": 42,
+  "rebalance": null,
+  "official_shared_queries": 1,
+  "test_dropped_shared_queries": 0,
+  "pool": {
+    "train_rows": 1393063,
+    "test_rows": 425762,
+    "train_label_share": {
+      "E": 0.6965,
+      "S": 0.1969,
+      "I": 0.0858,
+      "C": 0.0209
+    }
+  },
+  "test": {
+    "n": 10000,
+    "queries": 2500,
+    "labels": {
+      "exact": {
+        "count": 6669,
+        "share": 0.6669
+      },
+      "substitute": {
+        "count": 2163,
+        "share": 0.2163
+      },
+      "complement": {
+        "count": 259,
+        "share": 0.0259
+      },
+      "irrelevant": {
+        "count": 909,
+        "share": 0.0909
+      }
+    }
+  }
+}

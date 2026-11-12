@@ -1,0 +1,44 @@
+# E2：在 E1 配置基础上只改训练轮数与 checkpoint 选择（理由见 DEVLOG S9）：
+# - 1 个 epoch：E1 的验证损失在 epoch≈1 最低，第 2 个 epoch 回升（轻微过拟合）。
+# - 每 100 步评测并保存一次，训练结束时加载验证损失最低的 checkpoint 作为最终适配器。
+# E2a 用 E1 的数据（DATASET_DIR=$DATA_ROOT/e1_relevance/llamafactory），
+# E2b 用重采样数据（DATASET_DIR=$DATA_ROOT/e2_rebal/llamafactory），其余完全相同。
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+quantization_bit: 4
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+
+dataset: esci_rel_train
+eval_dataset: esci_rel_val
+template: qwen
+cutoff_len: 384
+overwrite_cache: true
+preprocessing_num_workers: 4
+
+output_dir: saves/e2
+logging_steps: 10
+plot_loss: true
+
+per_device_train_batch_size: 16
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-4
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
+
+per_device_eval_batch_size: 16
+eval_strategy: steps
+eval_steps: 100
+save_strategy: steps
+save_steps: 100
+save_total_limit: 2
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+report_to: none

@@ -62,7 +62,7 @@ N1 唯一研究变量是基座改为 `Qwen/Qwen2.5-14B-Instruct`。`configs/sft/
 
 预注册方案首选单卡 NVIDIA A100 80GB，以尽量保持 E2a 的 micro-batch。实际 N1 三种子实验运行于 RTX 5090 32GB；由于显存限制，统一使用 micro-batch 1、gradient accumulation 32，并保持 effective batch 32。该硬件与 micro-batch 偏差已写入每个 `run_manifest.json` 和 `reports/n1/README.md`，最终报告必须保留这项披露。
 
-后续复跑应优先复用同类环境；若更换 GPU，必须确认持久化数据盘、CUDA 可见、bf16 实测通过，并记录 GPU、driver、CUDA、PyTorch、micro-batch、gradient accumulation 和峰值显存。不要在不同 seed 之间使用不同 batch 配置。
+复跑时应优先复用同类环境；若更换 GPU，必须确认持久化数据盘、CUDA 可见、bf16 实测通过，并记录 GPU、driver、CUDA、PyTorch、micro-batch、gradient accumulation 和峰值显存。不要在不同 seed 之间使用不同 batch 配置。
 
 ## 3. Mac → GitHub → AutoDL
 
@@ -162,15 +162,12 @@ bash scripts/autodl/analyze_n1.sh
 
 产出：`training_summary.json/csv`（三个种子的状态、最佳 checkpoint、eval loss、耗时、有效 batch、峰值显存），以及每 seed 的 prior report（包含 Accuracy、Macro F1、各类 P/R/F1、混淆矩阵）、raw/prior predictions、两组种子的 mean/range 与 query bootstrap、full/clean/merged、排序 AUC/AP。所有 prior bias 只由 tune 得出，再应用到 test。
 
-已完成的三种子摘要、prior reports、数据/模型 provenance 和结论边界位于 `reports/n1/`。后续统一重算 E2a 与稳健性分析时，在同一目录追加小型 JSON 报告并更新 `README.md` / `RESULTS.md`；不要提交 scores、逐样本预测缓存、数据、模型、完整日志或 checkpoint。
+已完成的三种子摘要、prior reports、数据/模型 provenance 和结论边界位于 `reports/n1/`。E2a 按同一协议重算的报告（`e2a-dq-seed*-prior.json`）也在同一目录；不要提交 scores、逐样本预测缓存、数据、模型、完整日志或 checkpoint。
 
-## 7. 当前状态与剩余门槛
+## 7. 最终状态
 
 已完成：RTX 5090/bf16 环境检查、数据 hash 审核、模型 revision 固定、三种子正式训练、tune/test 标签打分，以及 full test 的 raw/prior 指标。三个 seed 均完成 625 steps，结果见 `reports/n1/README.md`。
 
-返回的精简结果包没有包含 N1 smoke marker 和 N0 gate/waiver 原件；这些证据应由实验负责人继续保留。最终宣称“14B 稳定优于 7B”之前仍必须：
+E2a 三个 adapter 已在 CCDS 上按相同 double-quant 协议重算（DEVLOG S27 结果）。按预注册主标准，14B 在加先验调整后的 full 与 merged 宏 F1 上三种子范围都不重叠，稳定优于 7B。
 
-1. 获取 `e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44` 三个 adapter，并按相同 double-quant 协议重算。
-2. 完成 full/clean/merged、query-level bootstrap 95% CI 和 ranking 分析。
-3. 补齐 smoke 与 N0 gate/团队批准 waiver 的审计证据。
-4. 确认三种子范围、置信区间与噪声口径均支持预注册判定标准。
+项目已结项，以下内容没有做，作为局限保留：返回的精简结果包没有逐条打分，因此 N1 没有 clean 口径、query-level bootstrap 95% CI 和 ranking 分析；也没有包含 N1 smoke marker 和 N0 gate/waiver 原件。

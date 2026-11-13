@@ -24,7 +24,7 @@ Prior-adjusted Macro F1 的三种子范围为 **0.561737–0.564639**，三个�
 | accuracy | 0.7307 / 0.7288 / 0.7297 | 0.7330 / 0.7426 / 0.7491 | +1.18 点 | 不重叠 |
 | raw full Macro F1（不加偏置） | 0.5320 / 0.5188 / 0.5318 | 0.5423 / 0.5231 / 0.5544 | +1.24 点 | 重叠 |
 
-按 DEVLOG S27 的预注册主标准（tune 上选偏置后的 test Macro F1，三种子范围不重叠），**14B 稳定优于 7B**，并且在 merged 口径上同样成立；提升主要来自 complement（每类 F1 平均 0.337 → 0.387）。不加偏置时两组范围重叠。clean 口径、query-level bootstrap 和 ranking 指标仍待补，需要 N1 的逐条 label scores（见下文）。
+按 DEVLOG S27 的预注册主标准（tune 上选偏置后的 test Macro F1，三种子范围不重叠），**14B 稳定优于 7B**，并且在 merged 口径上同样成立；提升主要来自 complement（每类 F1 平均 0.337 → 0.387）。不加偏置时两组范围重叠。clean 口径、query-level bootstrap 和 ranking 指标没有做（见文末“局限”）。
 
 ## 实验设置与实际偏差
 
@@ -63,10 +63,10 @@ Prior-adjusted Macro F1 的三种子范围为 **0.561737–0.564639**，三个�
 
 旧 E2a 三种子（未开 double quantization）的 prior-adjusted Macro F1 为 0.549287 / 0.553800 / 0.540541；开启 double quantization 后为 0.5468 / 0.5523 / 0.5443，三种子平均几乎不变（0.5479 → 0.5478），预测一致率 raw 约 98.8%、prior 约 96.5%。所以统一协议没有改变 7B 的水平，上表的差距来自模型规模。
 
-## 还缺什么
+## 局限（项目已结项，不再补做）
 
-1. **N1 的逐条 label scores**（`n1-seed{42,43,44}-{tune,test}.jsonl`）：有了它们才能做 clean 口径、query-level bootstrap 95% CI 和 ranking（AUC / AP）分析。7B 一侧的逐条打分已在 CCDS 上齐备。
-2. N0 gate 或团队批准的 waiver，以及 N1 smoke-test 的原始证据。
+1. 返回的结果包没有 N1 的逐条 label scores，所以 N1 对比没有 clean 口径、query-level bootstrap 95% CI 和 ranking（AUC / AP）分析，结论只覆盖上表的 full / merged / accuracy。
+2. 结果包也没有 N0 gate 或 waiver 以及 N1 smoke-test 的原始证据。
 
 ## 快速复核
 

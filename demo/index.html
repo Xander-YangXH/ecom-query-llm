@@ -172,6 +172,53 @@ tr.up td { color: var(--accent); font-weight: 600; }
 html[lang="en"] tr.up td:first-child::after { content: "stable gain"; }
 tr.up td:first-child::after { content: "稳定提升"; font-size: 11px; font-weight: 600; padding: 1px 6px; margin-left: 6px; border-radius: 999px; background: var(--accent-soft); }
 footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
+/* Bilingual blocks for the Experiments and Method tabs: both languages are in the markup, CSS shows one. */
+html[lang="en"] .t-zh, html:not([lang="en"]) .t-en { display: none !important; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); align-items: center; }
+.legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.sw.band { background: var(--accent-soft); border: 1px solid var(--line); }
+.sw.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.sw.dot.hl { background: var(--accent); }
+.sw.bar7 { background: var(--chart-7b); } .sw.bar14 { background: var(--accent); }
+:root { --chart-7b: #7c8783; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --chart-7b: #7f8a86; } }
+:root[data-theme="dark"] { --chart-7b: #7f8a86; }
+.rangechart { display: grid; gap: 2px; }
+.rangechart .rg { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); padding: 10px 0 2px; }
+.rangechart .rr { display: grid; grid-template-columns: minmax(120px, 230px) minmax(0, 1fr) 48px; gap: 10px; align-items: center; min-height: 24px; border-radius: 6px; }
+.rangechart .rr[data-i]:hover, .rangechart .rr[data-i]:focus-visible { background: var(--bg); outline: none; }
+.rangechart .lb { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rangechart .mv { font-size: 12px; color: var(--muted); text-align: right; }
+.rangechart .tr { position: relative; height: 22px; }
+.rangechart .band { position: absolute; top: 0; bottom: 0; background: var(--accent-soft); }
+.rangechart .ln { position: absolute; top: 10px; height: 2px; background: var(--muted); border-radius: 2px; }
+.rangechart .d { position: absolute; top: 6px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 2px var(--surface); }
+.rangechart .rr.hl .ln, .rangechart .rr.hl .d { background: var(--accent); }
+.rangechart .rr.hl .lb, .rangechart .rr.ref .lb { font-weight: 600; }
+.rangechart .rr.ref .ln, .rangechart .rr.ref .d { background: var(--ink); }
+.rangechart .axis .tr { height: 18px; border-top: 1px solid var(--line); }
+.rangechart .ticks span { position: absolute; top: 2px; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+@media (max-width: 560px) { .rangechart .rr { grid-template-columns: 104px minmax(0, 1fr) 40px; gap: 6px; } .rangechart .lb { font-size: 12px; white-space: normal; line-height: 1.3; } .rangechart .ticks span:nth-child(even) { display: none; } }
+.bars2 { display: grid; gap: 12px; }
+.cg { display: grid; gap: 4px; }
+.cg .cl { font-size: 13px; font-weight: 600; }
+.cg .br { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.cg .br > span:first-child { display: block; height: 10px; border-radius: 0 4px 4px 0; }
+.cg .b7 { background: var(--chart-7b); } .cg .b14 { background: var(--accent); }
+.cg .num { font-size: 12px; color: var(--muted); text-align: right; }
+.tip { position: fixed; z-index: 30; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.5; max-width: 280px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid var(--line); color: var(--muted); }
+.badge.gain { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.badge.worse { color: var(--i); background: var(--i-soft); border-color: transparent; }
+.exptable td:first-child { white-space: nowrap; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+.card2 { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 6px; align-content: start; }
+.card2 .n { font-family: var(--f-mono); font-size: 12px; color: var(--accent); font-weight: 600; }
+.card2 p { margin: 0; }
+section.view ul.small, section.view ol.small { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -182,6 +229,8 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
       <a href="#search" data-view="search"><span data-i18n="1">英文搜索</span></a>
       <a href="#rerank" data-view="rerank"><span data-i18n="2">中文重排</span></a>
       <a href="#results" data-view="results"><span data-i18n="3">项目成果</span></a>
+      <a href="#experiments" data-view="experiments"><span data-i18n="nav4">实验全景</span></a>
+      <a href="#methods" data-view="methods"><span data-i18n="nav5">方法与团队</span></a>
     </nav>
     <button class="lang" id="lang-btn" type="button" aria-label="切换到中文" lang="zh">中文</button>
   </div>
@@ -324,6 +373,157 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
       <p class="small"><span data-i18n="62">“英文搜索”和“中文重排”展示的都是模型在留出集上的真实打分，没有一条是挑选或改写过的：ESCI 测试集 2,500 个搜索词（每个 4 个商品，模型为 E2a seed 42），Multi-CPR 电商开发集 1,000 个搜索词（每个 BM25 前 20 名，零样本与微调 seed 42）。页面里的准确率、宏 F1 和 MRR 都在浏览器里从这些打分现场计算，与项目报告一致。模型本身需要 GPU，所以这里不做在线推理。</span></p>
     </div>
   </section>
+
+  <!-- Experiments -->
+  <section class="view" id="view-experiments" hidden>
+    <div class="intro">
+      <div class="eyebrow"><span class="t-zh">实验全景 · 约 20 组对照实验</span><span class="t-en">All experiments · about 20 controlled comparisons</span></div>
+      <h1><span class="t-zh">只有种子范围不重叠，才算稳定提升</span><span class="t-en">A gain counts only if the seed ranges do not overlap</span></h1>
+      <p class="lede t-zh">每个关键设定都跑 3 个随机种子，判断标准在运行前写进技术日志。下图是加先验调整后的测试集宏 F1：横线是三个种子的范围，圆点是每个种子。大部分改动都落在推荐方案（E2a）的范围里，只有换成 14B 基座整体在右边。</p>
+      <p class="lede t-en">Every key setting runs with 3 random seeds, and the success criterion is written into the dev log before the run. The chart shows test macro F1 after prior adjustment: the line spans the three seeds and each dot is one seed. Most changes land inside the recommended system’s (E2a) range; only the 14B base model sits entirely to the right.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2><span class="t-zh">各方案三个种子的宏 F1（加先验调整）</span><span class="t-en">Macro F1 of three seeds per system (with prior adjustment)</span></h2>
+        <div class="legend">
+          <span><i class="sw band"></i><span class="t-zh">E2a 种子范围</span><span class="t-en">E2a seed range</span></span>
+          <span><i class="sw dot hl"></i><span class="t-zh">14B（N1）</span><span class="t-en">14B (N1)</span></span>
+          <span><i class="sw dot"></i><span class="t-zh">其他方案</span><span class="t-en">Other systems</span></span>
+        </div>
+      </div>
+      <div class="rangechart" id="exp-range" role="img"></div>
+      <p class="small muted t-zh">把鼠标移到一行上可以看三个种子的具体数值。所有数字来自仓库 reports/ 下的报告文件；N2 来自组员的 EXPERIMENT_RESULTS.md。</p>
+      <p class="small muted t-en">Hover a row to see the three seed values. All numbers come from the report files under reports/ in the repository; N2 comes from the teammate’s EXPERIMENT_RESULTS.md.</p>
+    </div>
+    <div class="split two">
+      <div class="panel">
+        <h2><span class="t-zh">7B 对 14B：每一类的 F1</span><span class="t-en">7B vs 14B: F1 per class</span></h2>
+        <div class="legend">
+          <span><i class="sw bar7"></i>7B E2a</span>
+          <span><i class="sw bar14"></i>14B N1</span>
+        </div>
+        <div class="bars2" id="exp-class"></div>
+        <p class="small muted t-zh">两者按同一协议打分（4bit 加 double quantization），三个种子的平均。提升主要来自“可搭配”一类，“可替代”没有变好。</p>
+        <p class="small muted t-en">Both scored with the same protocol (4-bit with double quantization), mean of three seeds. The gain comes mainly from the complement class; substitute does not improve.</p>
+      </div>
+      <div class="panel">
+        <h2><span class="t-zh">14B 相对 7B（同一打分协议）</span><span class="t-en">14B over 7B (same scoring protocol)</span></h2>
+        <div class="stat-row three">
+          <div class="stat"><div class="v">+1.57</div><div class="k"><span class="t-zh">宏 F1（百分点），种子范围不重叠</span><span class="t-en">Macro F1 (points), seed ranges disjoint</span></div></div>
+          <div class="stat"><div class="v">+2.13</div><div class="k"><span class="t-zh">E、S 合并后的宏 F1，不重叠</span><span class="t-en">Macro F1 with E+S merged, disjoint</span></div></div>
+          <div class="stat"><div class="v">+1.18</div><div class="k"><span class="t-zh">准确率（百分点），不重叠</span><span class="t-en">Accuracy (points), disjoint</span></div></div>
+        </div>
+        <ul class="small">
+          <li><span class="t-zh">把 7B 也按 14B 的打分设置重打分后几乎不变（0.5479 → 0.5478），所以差距来自模型规模。</span><span class="t-en">Rescoring 7B with the 14B protocol leaves it unchanged (0.5479 → 0.5478), so the gap comes from model size.</span></li>
+          <li><span class="t-zh">不加偏置时两组范围重叠：14B 的优势要配合先验调整才稳定。</span><span class="t-en">Without the bias the ranges overlap: the 14B advantage is stable only with prior adjustment.</span></li>
+          <li><span class="t-zh">代价：每个种子约 4 倍的训练时间（14B 在 RTX 5090 上约 2.3 小时，7B 在 L40S 上约 33 分钟）。</span><span class="t-en">Cost: about 4× training time per seed (14B about 2.3 h on an RTX 5090, 7B about 33 min on an L40S).</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h2><span class="t-zh">全部实验一览</span><span class="t-en">Every experiment at a glance</span></h2>
+      <div class="tbl"><table class="exptable">
+        <thead><tr><th><span class="t-zh">实验</span><span class="t-en">ID</span></th><th><span class="t-zh">做法</span><span class="t-en">What we changed</span></th><th><span class="t-zh">结果</span><span class="t-en">Result</span></th><th><span class="t-zh">判断</span><span class="t-en">Verdict</span></th></tr></thead>
+        <tbody id="exp-table"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- Method & team -->
+  <section class="view" id="view-methods" hidden>
+    <div class="intro">
+      <div class="eyebrow"><span class="t-zh">方法、结论与团队</span><span class="t-en">Method, conclusions and team</span></div>
+      <h1><span class="t-zh">在有噪声的标注上，分清真提升和假提升</span><span class="t-en">Telling real gains from noise on imperfect labels</span></h1>
+      <p class="lede t-zh">最大的创新不是某一个技巧，而是一套能在噪声标注上判断“提升是不是真的”的评测方法，加上把模型压到线上可用速度的工程链路。</p>
+      <p class="lede t-en">The main contribution is not a single trick but an evaluation method that can tell whether a gain is real on noisy labels, plus an engineering path that brings the model to production speed.</p>
+    </div>
+    <div class="cards">
+      <article class="card2"><span class="n">01</span><h3><span class="t-zh">打分代替生成 + 推理时先验调整</span><span class="t-en">Scoring instead of generation + prior adjustment</span></h3>
+        <p class="small t-zh">对 4 个标签各算一次对数概率，再加上只在调参集上搜索的类别偏置。不用重训，宏 F1 +1.45 个百分点，效果等同于训练时重采样。</p>
+        <p class="small t-en">Compute the log-probability of each of the 4 labels, then add class biases searched on the tune split only. No retraining: macro F1 +1.45 points, matching training-time resampling.</p></article>
+      <article class="card2"><span class="n">02</span><h3><span class="t-zh">噪声感知的三种口径</span><span class="t-en">Three noise-aware views</span></h3>
+        <p class="small t-zh">full（完整测试集）、clean（去掉有争议的 E/S 样本，争议集由不参与比较的模型委员会定义）、merged（E、S 合并为相关）。由此发现加数据、加商品文本的提升几乎都出现在标注本身模糊的样本上。</p>
+        <p class="small t-en">full (whole test set), clean (disputed E/S rows removed, the disputed set defined by a committee of models not being compared) and merged (E and S as one “relevant” class). Gains from more data or richer product text turned out to live almost entirely on ambiguous labels.</p></article>
+      <article class="card2"><span class="n">03</span><h3><span class="t-zh">模型当审计员，人工确认</span><span class="t-en">Models as auditors, humans confirm</span></h3>
+        <p class="small t-zh">把多个模型一致反对原标注的样本抽出来盲评，组员人工复核后方向一致（E↔S 5.7% 对 6.8%，相关 / 搭配 / 无关 4.2% 对 4.1%）。一个低成本发现标注问题的流程。</p>
+        <p class="small t-en">Rows that several models consistently dispute are blind-reviewed; teammates’ human review agrees in direction (E↔S 5.7% vs 6.8%, relevant / complement / irrelevant 4.2% vs 4.1%). A cheap way to surface label problems.</p></article>
+      <article class="card2"><span class="n">04</span><h3><span class="t-zh">与偏置无关的排序指标</span><span class="t-en">Bias-invariant ranking metrics</span></h3>
+        <p class="small t-zh">softmax 后的概率并不与偏置无关，所以直接用原始对数概率算 AUC / AP，把“模型变聪明了”和“模型只是换了倾向”区分开。</p>
+        <p class="small t-en">Softmax probabilities are not invariant to the bias, so AUC / AP use raw log-probabilities. This separates “the model got smarter” from “the model only changed its prior”.</p></article>
+      <article class="card2"><span class="n">05</span><h3><span class="t-zh">只看第一个不同的 token + 蒸馏 + vLLM</span><span class="t-en">First differing token + distillation + vLLM</span></h3>
+        <p class="small t-zh">4 个标签在第一个不同的 token 之前完全相同，一次前向就能比较，吞吐约 4 倍；再蒸馏到 3B、用 vLLM，总共快 47 倍。还发现 4bit 上训练的适配器换到 bf16 推理，预测只有 86% 一致。</p>
+        <p class="small t-en">The 4 labels are identical up to their first differing token, so one forward pass compares them (about 4× throughput); distilling to 3B on vLLM makes it 47× faster overall. An adapter trained on a 4-bit base agrees only 86% with itself when served in bf16.</p></article>
+      <article class="card2"><span class="n">06</span><h3><span class="t-zh">事先写下判断标准</span><span class="t-en">Pre-registered criteria</span></h3>
+        <p class="small t-zh">每个实验运行前写好“什么算成功”，用 3 个种子的范围是否重叠来判断。负结果（先推理再分类、自标注多任务）因此也有明确结论。</p>
+        <p class="small t-en">Each run states in advance what counts as success, judged by whether three-seed ranges overlap. Negative results (reason-then-classify, self-labelled multitask) therefore also reach a clear verdict.</p></article>
+    </div>
+    <div class="split two">
+      <div class="panel">
+        <h2><span class="t-zh">标注审计：模型估计与人工复核</span><span class="t-en">Label audit: model estimate vs human review</span></h2>
+        <div class="tbl"><table>
+          <thead><tr><th><span class="t-zh">审计</span><span class="t-en">Audit</span></th><th class="n"><span class="t-zh">Claude 估计</span><span class="t-en">Claude estimate</span></th><th class="n"><span class="t-zh">人工复核</span><span class="t-en">Human review</span></th><th class="n"><span class="t-zh">人工与 Claude 一致</span><span class="t-en">Human = Claude</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="t-zh">E↔S（120 条）</span><span class="t-en">E↔S (120 rows)</span></td><td class="n">6.79%</td><td class="n">5.74%</td><td class="n">68.3%</td></tr>
+            <tr><td><span class="t-zh">相关 / 搭配 / 无关（130 条）</span><span class="t-en">Relevant / compl. / irrel. (130 rows)</span></td><td class="n">4.05%</td><td class="n">4.17%</td><td class="n">70.0%</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small muted t-zh">百分比是测试集中“人工支持模型、不支持原标注”的外推比例，不是逐条证实的错误率。对照组的人工判断与原标注一致率为 85% 和 95%。</p>
+        <p class="small muted t-en">Percentages are the extrapolated share of test rows where the reviewer sides with the model rather than the label, not a verified error rate. On control rows, human agreement with the label is 85% and 95%.</p>
+      </div>
+      <div class="panel">
+        <h2><span class="t-zh">可以放心部署</span><span class="t-en">Safe to deploy</span></h2>
+        <div class="tbl"><table>
+          <thead><tr><th><span class="t-zh">检查</span><span class="t-en">Check</span></th><th><span class="t-zh">结果</span><span class="t-en">Result</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="t-zh">通用能力（D1，MMLU 14,042 题）</span><span class="t-en">General ability (D1, MMLU 14,042 questions)</span></td><td><span class="num">0.7349 → 0.7353–0.7355</span><span class="t-zh">，没有净变化</span><span class="t-en">, no net change</span></td></tr>
+            <tr><td><span class="t-zh">4bit 量化（N2，bf16 LoRA 对照）</span><span class="t-en">4-bit quantization (N2, bf16 LoRA control)</span></td><td><span class="num">0.552 [0.546, 0.555]</span><span class="t-zh">，与 4bit 范围重叠</span><span class="t-en">, overlaps 4-bit</span></td></tr>
+            <tr><td><span class="t-zh">独立复现（N0）</span><span class="t-en">Independent rerun (N0)</span></td><td><span class="num">0.5493</span><span class="t-zh">，与原结果完全一致</span><span class="t-en">, identical to the original</span></td></tr>
+            <tr><td><span class="t-zh">部署速度（D4，3B + vLLM）</span><span class="t-en">Serving speed (D4, 3B + vLLM)</span></td><td><span class="num">398.6</span><span class="t-zh"> 条/秒，教师的 47 倍</span><span class="t-en"> rows/s, 47× the teacher</span></td></tr>
+          </tbody>
+        </table></div>
+      </div>
+    </div>
+    <div class="split two">
+      <div class="panel">
+        <h2><span class="t-zh">结论</span><span class="t-en">Conclusions</span></h2>
+        <ol class="small">
+          <li><span class="t-zh">稳定的收益只有三项：微调本身（0.384 → 0.535）、推理时先验调整（+1.45）、换成 14B 基座（+1.57）。</span><span class="t-en">Only three gains are stable: fine-tuning itself (0.384 → 0.535), inference-time prior adjustment (+1.45) and the 14B base model (+1.57).</span></li>
+          <li><span class="t-zh">标注质量是主要瓶颈：约 6% 的 E/S、约 4% 的相关 / 搭配 / 无关测试样本标注有争议，人工复核确认了方向。</span><span class="t-en">Label quality is the main bottleneck: about 6% of E/S and 4% of relevant / complement / irrelevant test rows are disputed, confirmed in direction by human review.</span></li>
+          <li><span class="t-zh">调类别比例约等于调先验，大部分可以用推理时的偏置代替。</span><span class="t-en">Rebalancing classes is roughly the same as shifting the prior, and is mostly replaceable by an inference-time bias.</span></li>
+          <li><span class="t-zh">可以落地：不伤通用能力，3B + vLLM 快 47 倍，方法能迁移到中文重排（MRR@10 0.256 → 0.346）。</span><span class="t-en">It is deployable: general ability intact, 3B + vLLM is 47× faster, and the method transfers to Chinese reranking (MRR@10 0.256 → 0.346).</span></li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h2><span class="t-zh">局限</span><span class="t-en">Limitations</span></h2>
+        <ul class="small">
+          <li><span class="t-zh">14B 的结论只覆盖 full / merged 宏 F1 与准确率；没有逐条打分，所以没有 clean 口径、bootstrap 和排序分析。</span><span class="t-en">The 14B claim covers full / merged macro F1 and accuracy only; without per-row scores there is no clean view, bootstrap or ranking analysis.</span></li>
+          <li><span class="t-zh">意图、属性、改写多任务（D3）用 7B 自己标注，标注质量限制了效果。</span><span class="t-en">The intent / attribute / rewrite multitask (D3) was labelled by the 7B model itself, which limited it.</span></li>
+          <li><span class="t-zh">标注审计每组只有 20–50 条样本；复核时讨论过少数边界案例，不是完全独立的第二位判断人。</span><span class="t-en">Each audit group has only 20–50 rows, and a few edge cases were discussed during review, so the reviewer is not fully independent.</span></li>
+          <li><span class="t-zh">只用了 ESCI 的美国英文子集；中文实验每个 query 只标注了一个正例。</span><span class="t-en">Only the US-English part of ESCI is used; the Chinese set labels a single positive per query.</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h2><span class="t-zh">工作量与分工</span><span class="t-en">Workload and team</span></h2>
+      <div class="tiles">
+        <div class="tile"><div class="v">4 <small><span class="t-zh">周</span><span class="t-en">weeks</span></small></div><div class="k">2026-10-17 → 11-13</div></div>
+        <div class="tile"><div class="v">72</div><div class="k"><span class="t-zh">次模型训练：CCDS L40S 69 次，AutoDL RTX 5090 3 次；1.5B 到 14B</span><span class="t-en">training runs: 69 on a CCDS L40S, 3 on an AutoDL RTX 5090; 1.5B to 14B</span></div></div>
+        <div class="tile"><div class="v">~20</div><div class="k"><span class="t-zh">组对照实验，关键结论都有 3 个种子</span><span class="t-en">controlled experiments, key claims on 3 seeds</span></div></div>
+        <div class="tile"><div class="v">250</div><div class="k"><span class="t-zh">条人工复核的标注</span><span class="t-en">labels reviewed by hand</span></div></div>
+      </div>
+      <p class="small muted t-zh">代码：Python 40 个模块约 4,000 行，脚本 42 个约 1,800 行，单测 72 个；技术日志约 2,000 行（28 个章节，记录 20 个工程问题的现象、原因与解决）。</p>
+      <p class="small muted t-en">Code: 40 Python modules (about 4,000 lines), 42 scripts (about 1,800 lines), 72 unit tests; a dev log of about 2,000 lines (28 sections, 20 engineering problems with symptom, cause and fix).</p>
+      <div class="tbl"><table>
+        <thead><tr><th><span class="t-zh">成员（分支）</span><span class="t-en">Member (branch)</span></th><th><span class="t-zh">负责</span><span class="t-en">Responsible for</span></th></tr></thead>
+        <tbody>
+          <tr><td><code>yxh</code></td><td><span class="t-zh">整体方案、E1–E10 与 D1–D5 全部实验、评测框架、技术日志、前端演示</span><span class="t-en">Overall design, all of E1–E10 and D1–D5, evaluation framework, dev log, this demo</span></td></tr>
+          <tr><td><code>liyouran</code></td><td><span class="t-zh">N0 独立复现与 N2 bf16 对照</span><span class="t-en">N0 independent rerun and the N2 bf16 control</span></td></tr>
+          <tr><td><code>zyq</code></td><td><span class="t-zh">N1 14B 容量实验：AutoDL 工作流与三个种子的训练和评测</span><span class="t-en">N1 14B capacity study: AutoDL workflow, three-seed training and evaluation</span></td></tr>
+          <tr><td><code>zhangchen</code></td><td><span class="t-zh">B1–B3 两份标注审计表的人工复核与评分</span><span class="t-en">B1–B3 human review and scoring of both audit sheets</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
 </main>
 <footer class="wrap"><span data-i18n="63">数据：Amazon Shopping Queries Dataset（ESCI）、Multi-CPR（电商子集）。代码与技术日志：NTU-AI6130-LLM-Project 仓库的 ecom-query-llm 目录。</span></footer>
 
@@ -335,7 +535,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     en: { exact: "Exact", substitute: "Substitute", complement: "Complement", irrelevant: "Irrelevant" },
   };
   // Static text: Chinese is read from the page itself; English lives here, keyed by data-i18n.
-  const EN_STATIC = {"0": "Search Relevance Assistant", "1": "English search", "2": "Chinese rerank", "3": "Results", "4": "Random", "5": "Show a model–label disagreement", "6": "Examples:", "7": "Inference-time prior adjustment", "8": "Search results · reranked by the model", "10": "Bought together", "11": "Items the model judged “complement”", "12": "Test accuracy (10k rows)", "13": "Test macro F1", "14": "Both numbers follow the prior-adjustment switch and are recomputed in your browser from all 10,000 scores.", "15": "Random", "16": "Fine-tuned 7B", "17": "Zero-shot 7B", "18": "Examples:", "19": "BM25 top 20 → LLM rerank", "20": "BM25 order", "22": "Score = log p(relevant) − log p(irrelevant). Each query has only one labelled correct item; other candidates may also be relevant.", "23": "BM25 · MRR@10 (1,000 queries)", "24": "Zero-shot 7B · MRR@10", "25": "Fine-tuned 7B · MRR@10", "26": "NTU AI6130 · Track A: practical applications of LLMs", "27": "Turning an open LLM into a relevance judge for e-commerce search", "28": "Given a shopper’s query and a product, the model decides whether the product is an exact match, a substitute, a complement or irrelevant. It sits after retrieval and before display: it reranks results, filters irrelevant items and moves complements into a recommendation slot. MMLU is 0.735 before and after fine-tuning, so general ability is intact.", "29": "Macro F1: zero-shot → fine-tuned + prior adjustment (mean of 3 seeds)", "30": "3B distilled model + vLLM: 399 rows/s, only 3.1 points lower macro F1", "31": "7B → 14B base (N1): higher on all three seeds under the same scoring protocol; the only training-side change that stably beats 7B", "32": "Chinese rerank MRR@10: zero-shot → fine-tuned", "33": "Where the model sits in the search pipeline", "34": "Retrieve", "35": "BM25 or vector search returns the top 20–100 items", "36": "Relevance judge (this project)", "37": "Log-probabilities of the four classes for each candidate, plus a prior bias", "38": "Rerank and route", "39": "Exact first, substitutes next; complements to recommendations; irrelevant demoted", "40": "Display and QA", "41": "Items where the model persistently disagrees with the label go to human review", "42": "Quality (ESCI test set, 2,500 queries, 10k rows)", "43": "System", "44": "Accuracy", "45": "Macro F1", "46": "Base model, zero-shot", "47": "QLoRA fine-tuning, 1 epoch", "48": "+ inference-time prior adjustment (recommended)", "49": "+ 1,500 extra C and I rows each", "50": "3B distilled model (deployment)", "51": "14B base model (N1)", "52": "Means of 3 seeds (first two rows: single run). A gain counts as stable only if the seed ranges do not overlap. The “extra C and I” row overlaps the recommended system. With 14B and 7B scored under the same protocol (4-bit with double quantization), macro F1 is [0.562, 0.565] vs [0.544, 0.552], and 0.605 vs 0.584 with E and S merged; the seed ranges do not overlap. The gain comes mainly from the complement class.", "53": "Serving speed (one L40S GPU)", "54": "Method", "55": "rows/s", "56": "Latency per row", "57": "7B, scoring each of 4 candidates", "58": "7B, first differing token only", "59": "3B, first differing token only", "60": "The four labels are identical up to their first differing token, so one forward pass compares all four.", "61": "Where the demo data comes from", "62": "“English search” and “Chinese rerank” show the model’s real scores on held-out data; nothing is cherry-picked or edited: 2,500 ESCI test queries (4 items each, model E2a seed 42) and 1,000 Multi-CPR e-commerce dev queries (BM25 top 20 each, zero-shot and fine-tuned seed 42). Accuracy, macro F1 and MRR on this page are computed live in the browser from these scores and match the project reports. The models need a GPU, so there is no live inference here.", "63": "Data: Amazon Shopping Queries Dataset (ESCI), Multi-CPR (e-commerce subset). Code and dev log: the ecom-query-llm folder of the NTU-AI6130-LLM-Project repository."};
+  const EN_STATIC = {"nav4": "Experiments", "nav5": "Method & team", "0": "Search Relevance Assistant", "1": "English search", "2": "Chinese rerank", "3": "Results", "4": "Random", "5": "Show a model–label disagreement", "6": "Examples:", "7": "Inference-time prior adjustment", "8": "Search results · reranked by the model", "10": "Bought together", "11": "Items the model judged “complement”", "12": "Test accuracy (10k rows)", "13": "Test macro F1", "14": "Both numbers follow the prior-adjustment switch and are recomputed in your browser from all 10,000 scores.", "15": "Random", "16": "Fine-tuned 7B", "17": "Zero-shot 7B", "18": "Examples:", "19": "BM25 top 20 → LLM rerank", "20": "BM25 order", "22": "Score = log p(relevant) − log p(irrelevant). Each query has only one labelled correct item; other candidates may also be relevant.", "23": "BM25 · MRR@10 (1,000 queries)", "24": "Zero-shot 7B · MRR@10", "25": "Fine-tuned 7B · MRR@10", "26": "NTU AI6130 · Track A: practical applications of LLMs", "27": "Turning an open LLM into a relevance judge for e-commerce search", "28": "Given a shopper’s query and a product, the model decides whether the product is an exact match, a substitute, a complement or irrelevant. It sits after retrieval and before display: it reranks results, filters irrelevant items and moves complements into a recommendation slot. MMLU is 0.735 before and after fine-tuning, so general ability is intact.", "29": "Macro F1: zero-shot → fine-tuned + prior adjustment (mean of 3 seeds)", "30": "3B distilled model + vLLM: 399 rows/s, only 3.1 points lower macro F1", "31": "7B → 14B base (N1): higher on all three seeds under the same scoring protocol; the only training-side change that stably beats 7B", "32": "Chinese rerank MRR@10: zero-shot → fine-tuned", "33": "Where the model sits in the search pipeline", "34": "Retrieve", "35": "BM25 or vector search returns the top 20–100 items", "36": "Relevance judge (this project)", "37": "Log-probabilities of the four classes for each candidate, plus a prior bias", "38": "Rerank and route", "39": "Exact first, substitutes next; complements to recommendations; irrelevant demoted", "40": "Display and QA", "41": "Items where the model persistently disagrees with the label go to human review", "42": "Quality (ESCI test set, 2,500 queries, 10k rows)", "43": "System", "44": "Accuracy", "45": "Macro F1", "46": "Base model, zero-shot", "47": "QLoRA fine-tuning, 1 epoch", "48": "+ inference-time prior adjustment (recommended)", "49": "+ 1,500 extra C and I rows each", "50": "3B distilled model (deployment)", "51": "14B base model (N1)", "52": "Means of 3 seeds (first two rows: single run). A gain counts as stable only if the seed ranges do not overlap. The “extra C and I” row overlaps the recommended system. With 14B and 7B scored under the same protocol (4-bit with double quantization), macro F1 is [0.562, 0.565] vs [0.544, 0.552], and 0.605 vs 0.584 with E and S merged; the seed ranges do not overlap. The gain comes mainly from the complement class.", "53": "Serving speed (one L40S GPU)", "54": "Method", "55": "rows/s", "56": "Latency per row", "57": "7B, scoring each of 4 candidates", "58": "7B, first differing token only", "59": "3B, first differing token only", "60": "The four labels are identical up to their first differing token, so one forward pass compares all four.", "61": "Where the demo data comes from", "62": "“English search” and “Chinese rerank” show the model’s real scores on held-out data; nothing is cherry-picked or edited: 2,500 ESCI test queries (4 items each, model E2a seed 42) and 1,000 Multi-CPR e-commerce dev queries (BM25 top 20 each, zero-shot and fine-tuned seed 42). Accuracy, macro F1 and MRR on this page are computed live in the browser from these scores and match the project reports. The models need a GPU, so there is no live inference here.", "63": "Data: Amazon Shopping Queries Dataset (ESCI), Multi-CPR (e-commerce subset). Code and dev log: the ecom-query-llm folder of the NTU-AI6130-LLM-Project repository."};
   const ATTR = {
     "en-q": { placeholder: ["搜索 2,500 个真实 Amazon 搜索词，例如 dyson hair dryer", "Search 2,500 real Amazon queries, e.g. dyson hair dryer"], "aria-label": ["搜索词", "Search query"] },
     "zh-q": { placeholder: ["搜索 1,000 个淘宝搜索词，例如 北极虾仁", "Search 1,000 Taobao queries, e.g. 北极虾仁"], "aria-label": ["中文搜索词", "Chinese query"] },
@@ -381,13 +581,13 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
   let EN = null, ZHD = null, enCur = 0, zhCur = 0, zhModel = 3;
 
   // ---------- views ----------
-  const views = ["search", "rerank", "results"];
+  const views = ["search", "rerank", "results", "experiments", "methods"];
   function show() {
     const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : "search";
     views.forEach(n => { $("view-" + n).hidden = n !== v; });
     document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.view === v ? "page" : "false"));
   }
-  window.addEventListener("hashchange", show); show();
+  window.addEventListener("hashchange", () => { show(); window.scrollTo(0, 0); }); show();
 
   // ---------- shared search box ----------
   function wireSearch(input, box, list, pick) {
@@ -513,6 +713,108 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
   });
 
   // ---------- load ----------
+
+  // ---------- experiments tab ----------
+  // Prior-adjusted test macro F1 of each seed (42, 43, 44), from reports/ (N2: EXPERIMENT_RESULTS.md).
+  const RANGES = [
+    { g: ["参照", "Reference"] },
+    { id: "E2a", zh: "E2a 推荐方案（7B）", en: "E2a recommended (7B)", s: [0.5493, 0.5538, 0.5405], ref: true },
+    { g: ["数据", "Data"] },
+    { id: "E6", zh: "E6 加商品文本", en: "E6 richer product text", s: [0.5471, 0.5471, 0.5517] },
+    { id: "E7", zh: "E7 追加 C、I + 软标签", en: "E7 extra C, I + soft labels", s: [0.5505, 0.5538, 0.5551] },
+    { id: "E7a", zh: "E7a 只追加 C、I", en: "E7a extra C, I only", s: [0.5604, 0.5508, 0.5473] },
+    { id: "E7b", zh: "E7b 只加软标签", en: "E7b soft labels only", s: [0.5569, 0.5371, 0.5458] },
+    { id: "E8", zh: "E8 追加 1,500 条 C", en: "E8 +1,500 complement", s: [0.5435, 0.5560, 0.5529] },
+    { id: "E8", zh: "E8 追加 3,000 条 C", en: "E8 +3,000 complement", s: [0.5440, 0.5517, 0.5540] },
+    { id: "E8", zh: "E8 追加 6,000 条 C", en: "E8 +6,000 complement", s: [0.5414, 0.5422, 0.5236] },
+    { id: "E10", zh: "E10 C、I 各追加 1,500 条", en: "E10 +1,500 C and I", s: [0.5476, 0.5546, 0.5514] },
+    { g: ["训练设定", "Training setup"] },
+    { id: "D2", zh: "D2 LoRA r=8", en: "D2 LoRA r=8", s: [0.5433, 0.5418, 0.5198] },
+    { id: "D2", zh: "D2 LoRA r=64", en: "D2 LoRA r=64", s: [0.5625, 0.5464, 0.5349] },
+    { id: "D2", zh: "D2 只训练 q、v", en: "D2 q, v only", s: [0.5235, 0.5099, 0.5130] },
+    { id: "D3", zh: "D3 多任务", en: "D3 multitask", s: [0.5324, 0.5440, 0.5521] },
+    { id: "N2", zh: "N2 bf16 LoRA（不量化）", en: "N2 bf16 LoRA (no quant.)", s: [0.5544, 0.5460, 0.5546] },
+    { g: ["规模与部署", "Scale and deployment"] },
+    { id: "D4", zh: "D4 3B 蒸馏版（人工标签）", en: "D4 3B student (gold labels)", s: [0.5291, 0.5101, 0.5118] },
+    { id: "E2a", zh: "E2a 按 14B 协议重打分", en: "E2a rescored, 14B protocol", s: [0.5468, 0.5523, 0.5443] },
+    { id: "N1", zh: "N1 14B 基座", en: "N1 14B base", s: [0.5642, 0.5646, 0.5617], hl: true },
+  ];
+  const X0 = 0.505, X1 = 0.570, pct = v => ((v - X0) / (X1 - X0) * 100).toFixed(2) + "%";
+  const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; document.body.appendChild(tip);
+  function showTip(e, html) {
+    tip.innerHTML = html; tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 14;
+    if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+    if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+    tip.style.left = Math.max(8, x) + "px"; tip.style.top = Math.max(8, y) + "px";
+  }
+  function renderRange() {
+    const en = lang === "en", ref = RANGES.find(r => r.ref), lo = Math.min(...ref.s), hi = Math.max(...ref.s);
+    const band = `<span class="band" style="left:${pct(lo)};width:calc(${pct(hi)} - ${pct(lo)})"></span>`;
+    const rows = RANGES.map((r, i) => {
+      if (r.g) return `<div class="rg">${r.g[en ? 1 : 0]}</div>`;
+      const mn = Math.min(...r.s), mx = Math.max(...r.s), mean = r.s.reduce((a, v) => a + v, 0) / 3;
+      const dots = r.s.map(v => `<i class="d" style="left:${pct(v)}"></i>`).join("");
+      return `<div class="rr${r.hl ? " hl" : ""}${r.ref ? " ref" : ""}" data-i="${i}" tabindex="0">
+        <span class="lb">${esc(en ? r.en : r.zh)}</span>
+        <span class="tr">${band}<span class="ln" style="left:${pct(mn)};width:calc(${pct(mx)} - ${pct(mn)})"></span>${dots}</span>
+        <span class="mv num">${mean.toFixed(3)}</span></div>`;
+    }).join("");
+    const ticks = [0.51, 0.52, 0.53, 0.54, 0.55, 0.56].map(v => `<span style="left:${pct(v)}">${v.toFixed(2)}</span>`).join("");
+    const el = $("exp-range");
+    el.setAttribute("aria-label", en ? "Seed ranges of prior-adjusted macro F1 for each system; only 14B lies entirely above the E2a range."
+                                     : "各方案加先验调整后宏 F1 的种子范围；只有 14B 整体高于 E2a 的范围。");
+    el.innerHTML = rows + `<div class="rr axis"><span class="lb"></span><span class="tr ticks">${ticks}</span><span class="mv num">${en ? "mean" : "均值"}</span></div>`;
+    el.querySelectorAll(".rr[data-i]").forEach(row => {
+      const r = RANGES[+row.dataset.i];
+      const html = `<b>${esc(en ? r.en : r.zh)}</b><br>${en ? "Seeds 42 / 43 / 44" : "种子 42 / 43 / 44"}: <span class="num">${r.s.map(v => v.toFixed(4)).join(" / ")}</span><br>${en ? "Range" : "范围"}: <span class="num">[${Math.min(...r.s).toFixed(3)}, ${Math.max(...r.s).toFixed(3)}]</span>`;
+      row.addEventListener("mousemove", e => showTip(e, html));
+      row.addEventListener("mouseleave", () => { tip.hidden = true; });
+    });
+  }
+  const PERCLASS = [["exact", 0.840, 0.848], ["substitute", 0.538, 0.535], ["complement", 0.337, 0.387], ["irrelevant", 0.476, 0.484]];
+  function renderClass() {
+    $("exp-class").innerHTML = PERCLASS.map(([c, a, b]) => `<div class="cg"><div class="cl">${nm(c)}</div>
+      <div class="br"><span class="b7" style="width:${(a * 100).toFixed(1)}%"></span><span class="num">${a.toFixed(3)}</span></div>
+      <div class="br"><span class="b14" style="width:${(b * 100).toFixed(1)}%"></span><span class="num">${b.toFixed(3)}</span></div></div>`).join("");
+  }
+  const VERDICT = {
+    gain: ["稳定提升", "Stable gain", "gain"], none: ["无稳定提升", "No stable gain", ""], worse: ["变差", "Worse", "worse"],
+    met: ["达到", "Met", "gain"], partial: ["部分达到", "Partly met", ""], notmet: ["未达到", "Not met", "worse"], info: ["结论", "Finding", ""],
+  };
+  const EXPS = [
+    ["E1", "QLoRA 微调 2 个 epoch", "QLoRA fine-tuning, 2 epochs", "宏 F1 0.384 → 0.534", "Macro F1 0.384 → 0.534", "gain"],
+    ["E2", "E2a：1 个 epoch + 选最优 checkpoint；E2b：训练时重采样", "E2a: 1 epoch + best checkpoint; E2b: training-time resampling", "E2a 准确率 0.739、训练时间减半，成为默认；E2b 少数类召回升、精确率降", "E2a accuracy 0.739 at half the training time, the new default; E2b trades precision for minority recall", "info"],
+    ["R1", "测试集从 600 扩大到 2,500 个 query", "Test set grown from 600 to 2,500 queries", "此前结论都成立", "Earlier conclusions hold", "info"],
+    ["E3", "推理时先验调整", "Inference-time prior adjustment", "不用重训，宏 F1 +1.45 个百分点", "Macro F1 +1.45 points without retraining", "gain"],
+    ["E4/E5", "训练数据 2 万 → 20 万条；3 个种子", "Training data 20k → 200k rows; 3 seeds", "准确率约 10 万条后饱和；种子之间可差 1.3 个百分点", "Accuracy saturates around 100k; seeds alone can differ by 1.3 points", "info"],
+    ["E6", "输入加品牌、颜色、商品要点", "Brand, colour and bullet points in the input", "准确率 +0.5，先验调整后宏 F1 不变，计算量 1.5 倍", "Accuracy +0.5, macro F1 unchanged after prior adjustment, 1.5× compute", "none"],
+    ["S17/S24", "标注审计：E↔S 与相关 / 搭配 / 无关", "Label audits: E↔S and relevant / complement / irrelevant", "约 6.8% 与 4% 的测试样本标注有争议", "About 6.8% and 4% of test rows have disputed labels", "info"],
+    ["S18", "噪声感知评测（full / clean / merged）", "Noise-aware evaluation (full / clean / merged)", "加数据、加文本的提升几乎都在有争议的样本上", "Gains from data and text sit almost entirely on disputed rows", "info"],
+    ["E7", "C、I 各追加 3,000 条 + 争议 E/S 软标签", "+3,000 C and I rows + soft labels for disputed E/S", "主要改变先验倾向；complement 排序小幅提升；软标签无效", "Mostly shifts the prior; small real gain in complement ranking; soft labels do nothing", "none"],
+    ["E8", "只追加 complement：1,500 / 3,000 / 6,000 条", "Complement only: +1,500 / 3,000 / 6,000 rows", "1,500–3,000 条饱和；6,000 条有害并拖累 irrelevant", "Saturates at 1,500–3,000; 6,000 hurts and drags irrelevant down", "none"],
+    ["E9a", "先写理由再给标签的 SFT", "Reason-then-label SFT", "宏 F1 降到 0.363；按标准停止，不做 GRPO", "Macro F1 drops to 0.363; stopped by the criterion, no GRPO", "worse"],
+    ["E10", "C、I 各追加 1,500 条", "+1,500 C and I rows", "排序最好（complement AP 0.322 → 0.347）；宏 F1 0.551 在 E2a 范围内", "Best ranking (complement AP 0.322 → 0.347); macro F1 0.551 within the E2a range", "none"],
+    ["D1", "通用能力回归（MMLU）", "General-ability regression (MMLU)", "0.7349 → 0.7353–0.7355，没有净变化", "0.7349 → 0.7353–0.7355, no net change", "met"],
+    ["D2", "LoRA r=8 / r=64 / 只训练 q、v", "LoRA r=8 / r=64 / q, v only", "默认 r=16 全部线性层合适；只训练 q、v 稳定变差 3.2 个百分点", "Default r=16 on all linear layers is right; q, v only is 3.2 points worse", "info"],
+    ["D3", "意图 / 属性 / 改写多任务（7B 自标注）", "Intent / attribute / rewrite multitask (7B self-labelled)", "没有提升；准确率低 0.9 个百分点", "No gain; accuracy 0.9 points lower", "notmet"],
+    ["D4", "蒸馏到 1.5B / 3B + vLLM", "Distil to 1.5B / 3B + vLLM", "3B 人工标签版 0.517，每秒 399 条，是教师的 47 倍", "3B gold-label student 0.517 at 399 rows/s, 47× the teacher", "partial"],
+    ["D5", "中文 Multi-CPR 重排", "Chinese Multi-CPR reranking", "MRR@10 0.256 → 0.346", "MRR@10 0.256 → 0.346", "met"],
+    ["N0", "组员独立复现 E2a seed 42", "Teammate reruns E2a seed 42", "0.5493，与原结果完全一致", "0.5493, identical to the original", "met"],
+    ["N2", "bf16 LoRA（不量化基座）", "bf16 LoRA (no base quantization)", "0.552 [0.546, 0.555]，与 E2a 范围重叠", "0.552 [0.546, 0.555], overlaps E2a", "none"],
+    ["N1", "换成 Qwen2.5-14B 基座", "Qwen2.5-14B base model", "0.564 [0.562, 0.565]；同一协议下 full +1.57、merged +2.13，范围不重叠", "0.564 [0.562, 0.565]; same protocol: full +1.57, merged +2.13, ranges disjoint", "gain"],
+    ["B1–B3", "两份审计表的人工复核", "Human review of both audit sheets", "5.74%（E↔S）、4.17%（相关 / 搭配 / 无关），与 Claude 的 6.79%、4.05% 方向一致", "5.74% (E↔S) and 4.17% (rel. / compl. / irrel.), in line with Claude’s 6.79% and 4.05%", "met"],
+  ];
+  function renderExpTable() {
+    const en = lang === "en";
+    $("exp-table").innerHTML = EXPS.map(([id, wz, we, rz, re, v]) => {
+      const b = VERDICT[v];
+      return `<tr><td class="num">${id}</td><td>${en ? we : wz}</td><td>${en ? re : rz}</td><td><span class="badge ${b[2]}">${en ? b[1] : b[0]}</span></td></tr>`;
+    }).join("");
+  }
+  function renderExp() { renderRange(); renderClass(); renderExpTable(); }
+
   // ---------- language ----------
   const zhStatic = new Map();
   document.querySelectorAll("[data-i18n]").forEach(el => zhStatic.set(el, el.innerHTML));
@@ -528,6 +830,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     const btn = $("lang-btn"); btn.textContent = T.btn; btn.setAttribute("aria-label", T.btnLabel); btn.lang = T.btnLang;
     if (EN) { renderEN(); renderENStats(); } else $("en-main").innerHTML = `<div class="empty">${T.loading}</div>`;
     if (ZHD) renderZH();
+    renderExp();
   }
   $("lang-btn").addEventListener("click", () => {
     lang = lang === "en" ? "zh" : "en";

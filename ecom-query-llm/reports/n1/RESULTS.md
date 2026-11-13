@@ -1,6 +1,6 @@
 # N1: Qwen2.5-14B-Instruct QLoRA results
 
-> Status (2026-11-13): N1 three-seed training and evaluation are complete, and the three E2a adapters have been rescored with the same double-quantization protocol (`e2a-dq-seed*-prior.json`). Under that protocol N1 beats E2a on prior-adjusted full and merged Macro F1 with non-overlapping seed ranges; see the Chinese `README.md` and DEVLOG S27. Clean, bootstrap and ranking analyses still need N1 per-row label scores.
+> Status (2026-11-13): N1 three-seed training and evaluation are complete, and the three E2a adapters have been rescored with the same double-quantization protocol (`e2a-dq-seed*-prior.json`). Under that protocol N1 beats E2a on prior-adjusted full and merged Macro F1 with non-overlapping seed ranges; see the Chinese `README.md` and DEVLOG S27. The project is closed; clean, bootstrap and ranking analyses were not done because the returned bundle has no N1 per-row label scores.
 
 ## 1. Experiment identity
 
@@ -51,11 +51,6 @@ The adjusted Macro F1 range is **0.561737-0.564639**. All format-valid rates are
 
 For orientation only, the repository's historical E2a reports have adjusted Macro F1 values 0.549287, 0.553800, and 0.540541 (range 0.540541-0.553800). The current N1 range is higher and non-overlapping, with a mean advantage of about 0.01565. This is **not yet the formal fair comparison** because those E2a scores were generated under the older evaluation setup without the newly required double-quantization alignment.
 
-Do not report "stable improvement" as the final conclusion until all of the following are complete:
+**Update (2026-11-13, final).** The three E2a adapters were rescored on CCDS with NF4, bf16 compute and double quantization (`e2a-dq-seed*-prior.json`). Under that protocol N1 beats E2a on prior-adjusted full Macro F1 (+1.57 points), merged Macro F1 (+2.13) and accuracy (+1.18), with non-overlapping seed ranges (DEVLOG S27). The project is closed; the clean view, query-level bootstrap, ranking analyses and the N0 gate / smoke-test evidence were not produced and remain limitations.
 
-1. Rescore the three E2a adapters with NF4, bf16 compute, and double quantization enabled.
-2. Produce the full/clean/merged comparison and document the independent clean-label source.
-3. Run query-level bootstrap confidence intervals and ranking analyses.
-4. Archive the N0 gate result or the team-approved waiver and the N1 smoke-test evidence.
-
-Current conclusion: **N1 full-test results are complete and promising; the confirmatory N1-vs-E2a comparison remains incomplete.**
+Final conclusion: **under the same scoring protocol, 14B stably beats 7B on prior-adjusted full and merged Macro F1; robustness views that need per-row scores were not done.**

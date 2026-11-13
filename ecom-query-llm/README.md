@@ -42,7 +42,7 @@ E2a 的三个 adapter 已在 CCDS 上按 N1 相同的协议（NF4、bf16 compute
 | merged 宏 F1 | [0.5774, 0.5907] | [0.6041, 0.6063] | +2.13 |
 | accuracy | [0.7288, 0.7307] | [0.7330, 0.7491] | +1.18 |
 
-三项的种子范围都不重叠，按预注册标准算稳定提升，主要来自 complement（F1 +5 点）。不加偏置（raw）时两组范围重叠。clean 口径、bootstrap 置信区间和排序指标需要 N1 的逐条打分，组员的结果包里没有，待补。详细指标、实验偏差和文件导航见 [`reports/n1/README.md`](reports/n1/README.md)。
+三项的种子范围都不重叠，按预注册标准算稳定提升，主要来自 complement（F1 +5 点）。不加偏置（raw）时两组范围重叠。N1 只交回了汇总报告、没有逐条打分，因此这一对比没有 clean 口径、bootstrap 置信区间和排序指标，结论只覆盖上表三项。详细指标、实验偏差和文件导航见 [`reports/n1/README.md`](reports/n1/README.md)。
 
 ## 方法要点
 
@@ -57,7 +57,6 @@ E2a 的三个 adapter 已在 CCDS 上按 N1 相同的协议（NF4、bf16 compute
 
 ```
 configs/sft/          LLaMA-Factory 配置：e2_relevance_qlora_1ep_best.yaml 为默认（E2a），e9a_* 为推理格式
-configs/ds/           DeepSpeed ZeRO-2 / ZeRO-3（NSCC 多卡用）
 src/ecomq/schema.py   标签、指令、输出格式与解析、校验
 src/ecomq/data/       prepare_esci（抽样与划分）、enrich_esci（商品附加字段）、build_e7 / build_e9（各实验的数据）、
                       make_rationales（推理理由）、to_alpaca（转 LLaMA-Factory 格式）
@@ -65,13 +64,12 @@ src/ecomq/eval/       score_labels（标签打分）、score_labels_cot、prior_
                       noise_aware、ranking、metrics、generate_hf
 src/ecomq/analysis/   es_audit（标注审计：抽样、生成 Excel 盲评表、评分）
 scripts/slurm/        CCDS 作业脚本与各实验的调度脚本（run_e*.sh）
-scripts/pbs/          NSCC 作业脚本（占位，尚未适配，见 docs/NSCC_PLAN.md）
 scripts/autodl/       N1 单卡 AutoDL：环境检查、数据审计、模型下载、smoke/N0 gate、三种子训练与统一评估
 scripts/              环境安装、模型与数据下载、代码同步（remote.sh）、本地分析缓存（local_cache.sh）、提交前检查（check_leaks.sh）
 analysis/             es_audit（E↔S）、ci_audit（complement / irrelevant）两份盲评材料
 reports/              各实验的指标与对比 JSON（小文件，进 git）
 reports/n1/           N1 三种子结果、训练摘要、数据/模型 provenance 与组员阅读入口
-docs/                 DEVLOG、LABELS、WORKFLOW、N1 AutoDL 指南、NSCC_PLAN、TEAM_TODO
+docs/                 DEVLOG、LABELS、WORKFLOW、N1 AutoDL 指南
 tests/                单测（当前 72 个）
 ```
 
@@ -106,9 +104,9 @@ N1 的完整命令、断点续跑规则和门禁条件见 [`docs/N1_AUTODL_GUIDE
 
 E2a 三个 adapter（`e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44`）在 CCDS 上的统一协议重打分用 `bash scripts/slurm/run_e2a_dq.sh`（`label_scores.sbatch` 的 `DOUBLE_QUANT=1`）；在 AutoDL 上对应 `scripts/autodl/rescore_e2a_for_n1.sh`。结果报告为 `reports/n1/e2a-dq-seed*-prior.json`。
 
-## 下一阶段
+## 项目状态
 
-CCDS 单卡 7B 主线和 AutoDL 单卡 14B N1 三种子训练均已完成。按统一 double-quant 协议，14B 在加先验调整后的 full 与 merged 宏 F1 上稳定优于 7B；剩余工作是取得 N1 的逐条打分以补齐 clean、bootstrap 和排序分析；全参数微调等多卡扩展计划见 [docs/NSCC_PLAN.md](docs/NSCC_PLAN.md)。
+已结项（2026-11-13）。CCDS 单卡 7B 主线（E1–E10、D1–D5、N0/N2）和 AutoDL 单卡 14B（N1）全部完成并写入 DEVLOG；不再安排后续实验。展示要点见仓库根目录的 [PRESENTATION.md](../PRESENTATION.md)。
 
 ## 数据说明
 

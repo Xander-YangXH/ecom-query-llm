@@ -11,4 +11,4 @@
 | 改写 | 2 条丢掉了约束，约 6 条漏改了拼写错误 | “coffee mug with g” 改成了 “coffee mug”；“samsung galaxy j2 case never give up” 丢掉了图案词；beenie、biys、toddle、sherrif、cotapaxi 没有改正 |
 
 结论：意图标签 91% 是 product_search，所以意图准确率高并不说明标得好；属性的召回明显不足，值也有约 12% 的错误。
-用这份标注训练出的模型，学到的上限就是这个水平（见 N4：在 NSCC 上换更强的标注模型重做）。
+用这份标注训练出的模型，学到的上限就是这个水平；这是 D3 没有得到提升的主要原因。

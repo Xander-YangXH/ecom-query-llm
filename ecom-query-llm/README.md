@@ -34,7 +34,15 @@
 
 N1 仅把 E2a 的基座替换为 Qwen2.5-14B-Instruct，并尽量冻结数据、prompt、QLoRA 超参数、有效 batch 和评估方法。三个正式种子的 test prior-adjusted Macro F1 为 **0.564195、0.564639、0.561737**，平均 **0.563523**，范围 **0.561737–0.564639**。
 
-这些结果完整且种子间稳定，但当前只应表述为“promising”：旧 E2a 三种子尚未按 N1 使用的 NF4、bf16 compute、double quantization 协议重新打分，clean/merged、query-level bootstrap 和 ranking 对比也尚未完成。因此暂不把“14B 稳定优于 7B”写成最终结论。详细指标、实验偏差、文件导航和后续依赖见 [`reports/n1/README.md`](reports/n1/README.md)。
+E2a 的三个 adapter 已在 CCDS 上按 N1 相同的协议（NF4、bf16 compute、double quantization）重新打分（DEVLOG S27 结果）。double quantization 对 7B 本身几乎没有影响（三种子平均 0.5479 → 0.5478）。同一协议下：
+
+| 指标（加先验调整） | 7B E2a-dq 范围 | 14B N1 范围 | 平均差 |
+| --- | --- | --- | ---: |
+| full 宏 F1 | [0.5443, 0.5523] | [0.5617, 0.5646] | +1.57 |
+| merged 宏 F1 | [0.5774, 0.5907] | [0.6041, 0.6063] | +2.13 |
+| accuracy | [0.7288, 0.7307] | [0.7330, 0.7491] | +1.18 |
+
+三项的种子范围都不重叠，按预注册标准算稳定提升，主要来自 complement（F1 +5 点）。不加偏置（raw）时两组范围重叠。clean 口径、bootstrap 置信区间和排序指标需要 N1 的逐条打分，组员的结果包里没有，待补。详细指标、实验偏差和文件导航见 [`reports/n1/README.md`](reports/n1/README.md)。
 
 ## 方法要点
 
@@ -96,11 +104,11 @@ CCDS（SLURM）上的主结果，按顺序在登录节点用 `setsid nohup` 运�
 
 N1 的完整命令、断点续跑规则和门禁条件见 [`docs/N1_AUTODL_GUIDE.md`](docs/N1_AUTODL_GUIDE.md)。如果只需了解已经得到的结果，从 [`reports/n1/README.md`](reports/n1/README.md) 开始；机器可读指标和 provenance 均在同一目录。
 
-正式完成 N1-vs-E2a 对比仍需要以下三个 E2a adapter：`e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44`。取得后运行 `scripts/autodl/rescore_e2a_for_n1.sh`，不要直接把旧 E2a 报告与 N1 当作统一协议结果比较。
+E2a 三个 adapter（`e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44`）在 CCDS 上的统一协议重打分用 `bash scripts/slurm/run_e2a_dq.sh`（`label_scores.sbatch` 的 `DOUBLE_QUANT=1`）；在 AutoDL 上对应 `scripts/autodl/rescore_e2a_for_n1.sh`。结果报告为 `reports/n1/e2a-dq-seed*-prior.json`。
 
 ## 下一阶段
 
-CCDS 单卡 7B 主线和 AutoDL 单卡 14B N1 三种子训练均已完成。当前优先事项是取得三个 E2a adapter、统一 double-quant 评估协议并完成稳健性分析；全参数微调等多卡扩展计划见 [docs/NSCC_PLAN.md](docs/NSCC_PLAN.md)。
+CCDS 单卡 7B 主线和 AutoDL 单卡 14B N1 三种子训练均已完成。按统一 double-quant 协议，14B 在加先验调整后的 full 与 merged 宏 F1 上稳定优于 7B；剩余工作是取得 N1 的逐条打分以补齐 clean、bootstrap 和排序分析；全参数微调等多卡扩展计划见 [docs/NSCC_PLAN.md](docs/NSCC_PLAN.md)。
 
 ## 数据说明
 

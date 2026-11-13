@@ -1,6 +1,6 @@
 # N1: Qwen2.5-14B-Instruct QLoRA results
 
-> Status: N1 three-seed training and standard full-test evaluation are complete. The final N1-vs-E2a claim remains pending because the three E2a adapters have not yet been rescored with the same double-quantization protocol, and clean/merged, bootstrap, and ranking analyses are not included in the returned artifact.
+> Status (2026-11-13): N1 three-seed training and evaluation are complete, and the three E2a adapters have been rescored with the same double-quantization protocol (`e2a-dq-seed*-prior.json`). Under that protocol N1 beats E2a on prior-adjusted full and merged Macro F1 with non-overlapping seed ranges; see the Chinese `README.md` and DEVLOG S27. Clean, bootstrap and ranking analyses still need N1 per-row label scores.
 
 ## 1. Experiment identity
 

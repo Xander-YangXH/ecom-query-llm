@@ -161,8 +161,8 @@ th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--lin
 th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .03em; }
 td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 tr.best td { font-weight: 600; }
-tr.prelim td { color: var(--accent); }
-tr.prelim td:first-child::after { content: " 初步"; font-size: 11px; font-weight: 600; padding: 1px 6px; margin-left: 6px; border-radius: 999px; background: var(--accent-soft); }
+tr.up td { color: var(--accent); font-weight: 600; }
+tr.up td:first-child::after { content: "稳定提升"; font-size: 11px; font-weight: 600; padding: 1px 6px; margin-left: 6px; border-radius: 999px; background: var(--accent-soft); }
 footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -267,7 +267,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     <div class="tiles">
       <div class="tile"><div class="v">0.384 <small>→</small> 0.548</div><div class="k">宏 F1：零样本 → 微调 + 先验调整（3 个种子均值）</div></div>
       <div class="tile"><div class="v">47<small>×</small></div><div class="k">3B 蒸馏版 + vLLM 每秒 399 条，宏 F1 只低 3.1 个百分点</div></div>
-      <div class="tile"><div class="v">0.548 <small>→</small> 0.564</div><div class="k">7B → 14B 基座（N1，初步）：三个种子都更高，正在统一打分协议</div></div>
+      <div class="tile"><div class="v">0.548 <small>→</small> 0.564</div><div class="k">7B → 14B 基座（N1）：同一打分协议下三个种子都更高，唯一稳定超过 7B 的训练侧改动</div></div>
       <div class="tile"><div class="v">0.256 <small>→</small> 0.346</div><div class="k">中文重排 MRR@10：零样本 → 微调</div></div>
     </div>
     <div class="panel">
@@ -290,10 +290,10 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
             <tr class="best"><td>+ 推理时先验调整（推荐）</td><td class="n">0.728</td><td class="n">0.548</td></tr>
             <tr><td>+ C、I 各追加 1,500 条</td><td class="n">0.728</td><td class="n">0.551</td></tr>
             <tr><td>3B 蒸馏版（部署用）</td><td class="n">0.723</td><td class="n">0.517</td></tr>
-            <tr class="prelim"><td>换成 14B 基座（N1）</td><td class="n">0.742</td><td class="n">0.564</td></tr>
+            <tr class="up"><td>换成 14B 基座（N1）</td><td class="n">0.742</td><td class="n">0.564</td></tr>
           </tbody>
         </table></div>
-        <p class="small muted">均为 3 个种子的均值（前两行为单次）。只有种子范围不重叠才算稳定提升。“追加 C、I”一行与推荐方案的范围重叠；14B 的三个种子 [0.562, 0.565] 都高于 7B 的 [0.541, 0.554]，但打分时开启了 double quantization，7B 还没按同一协议重新打分，所以暂列为初步结果。</p>
+        <p class="small muted">均为 3 个种子的均值（前两行为单次）。只有种子范围不重叠才算稳定提升。“追加 C、I”一行与推荐方案的范围重叠；14B 与 7B 按同一协议打分（4bit 加 double quantization）后，宏 F1 [0.562, 0.565] 对 [0.544, 0.552]，E、S 合并后 0.605 对 0.584，三个种子的范围都不重叠；提升主要来自“可搭配”一类。</p>
       </div>
       <div class="panel">
         <h2>部署速度（单卡 L40S）</h2>

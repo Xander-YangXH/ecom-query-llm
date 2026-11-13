@@ -15,7 +15,16 @@ N1 的三个正式种子均已完成训练、tune 偏置选择和 test 评估：
 
 Prior-adjusted Macro F1 的三种子范围为 **0.561737–0.564639**，三个种子的输出格式有效率均为 100%。结果初步显示 14B 版本表现较好且种子间较稳定。
 
-但是，**目前不能把“14B 稳定优于 7B”作为最终正式结论**。仓库中已有的 E2a 结果使用了旧评估设置，而 N1 使用 NF4、bf16 compute 和 double quantization。必须先用完全相同的协议重新评估三个 E2a adapter，再进行公平比较。
+**统一协议后的对比（2026-11-13）**：E2a 三个 adapter 已在 CCDS 上用与 N1 相同的 NF4、bf16 compute、double quantization 协议重新打分（报告为本目录的 `e2a-dq-seed*-prior.json`，过程见 DEVLOG S27 结果）。
+
+| 指标（加先验调整） | 7B E2a-dq（42 / 43 / 44） | 14B N1（42 / 43 / 44） | 平均差 | 种子范围 |
+| --- | --- | --- | ---: | --- |
+| full Macro F1 | 0.5468 / 0.5523 / 0.5443 | 0.5642 / 0.5646 / 0.5617 | +1.57 点 | 不重叠 |
+| merged Macro F1（E+S 合并） | 0.5834 / 0.5907 / 0.5774 | 0.6063 / 0.6041 / 0.6050 | +2.13 点 | 不重叠 |
+| accuracy | 0.7307 / 0.7288 / 0.7297 | 0.7330 / 0.7426 / 0.7491 | +1.18 点 | 不重叠 |
+| raw full Macro F1（不加偏置） | 0.5320 / 0.5188 / 0.5318 | 0.5423 / 0.5231 / 0.5544 | +1.24 点 | 重叠 |
+
+按 DEVLOG S27 的预注册主标准（tune 上选偏置后的 test Macro F1，三种子范围不重叠），**14B 稳定优于 7B**，并且在 merged 口径上同样成立；提升主要来自 complement（每类 F1 平均 0.337 → 0.387）。不加偏置时两组范围重叠。clean 口径、query-level bootstrap 和 ranking 指标仍待补，需要 N1 的逐条 label scores（见下文）。
 
 ## 实验设置与实际偏差
 
@@ -45,37 +54,19 @@ Prior-adjusted Macro F1 的三种子范围为 **0.561737–0.564639**，三个�
 | [`n1-seed44-prior.json`](n1-seed44-prior.json) | Seed 44 的完整指标、per-class P/R/F1、混淆矩阵和偏置曲线 |
 | [`data-manifest.json`](data-manifest.json) | 数据规模、标签分布和 SHA256 provenance |
 | [`model-revision.json`](model-revision.json) | Hugging Face 模型版本 provenance |
+| [`e2a-dq-seed42-prior.json`](e2a-dq-seed42-prior.json) 等 3 个 | 7B E2a 按同一 double-quant 协议重打分后的报告（CCDS，格式同上） |
 | [`TEMPLATE.md`](TEMPLATE.md) | 最初预注册的 N1 报告结构与判定标准 |
 
 逐样本 label scores、预测缓存、完整训练日志和 adapter 权重没有提交到 Git：这些文件体积较大或可由现有脚本重新生成。原始结果归档应由实验负责人另行保留。
 
 ## 与旧 E2a 结果的关系
 
-旧 E2a 三种子 prior-adjusted Macro F1 为：
+旧 E2a 三种子（未开 double quantization）的 prior-adjusted Macro F1 为 0.549287 / 0.553800 / 0.540541；开启 double quantization 后为 0.5468 / 0.5523 / 0.5443，三种子平均几乎不变（0.5479 → 0.5478），预测一致率 raw 约 98.8%、prior 约 96.5%。所以统一协议没有改变 7B 的水平，上表的差距来自模型规模。
 
-- Seed 42：0.549287
-- Seed 43：0.553800
-- Seed 44：0.540541
+## 还缺什么
 
-旧 E2a 范围为 0.540541–0.553800，N1 范围为 0.561737–0.564639，表面上没有重叠。但这组对比只能作为方向性参考，因为两者的量化评估协议尚未统一。
-
-## 完成正式比较还需要什么
-
-请组员协助提供以下三个 E2a adapter：
-
-1. `e2a-1ep-best`
-2. `e5-20k-s43`
-3. `e5-20k-s44`
-
-拿到 adapter 后，应按以下顺序完成：
-
-1. 使用 `scripts/autodl/rescore_e2a_for_n1.sh`，以 NF4、bf16 compute、double quantization 统一重算 E2a。
-2. 比较 N1 和 E2a 的三种子均值、范围及每类 P/R/F1。
-3. 完成 full / clean / merged 分析，并注明 clean labels 的独立来源。
-4. 完成 query-level bootstrap 95% CI 和 ranking 指标分析。
-5. 补充 N0 gate 或团队批准 waiver，以及 N1 smoke-test 的原始证据。
-
-只有在统一协议后 N1 三个种子仍稳定优于 E2a、种子范围不重叠且 bootstrap CI 支持提升时，才能在最终报告中写成“14B 带来稳定提升”。
+1. **N1 的逐条 label scores**（`n1-seed{42,43,44}-{tune,test}.jsonl`）：有了它们才能做 clean 口径、query-level bootstrap 95% CI 和 ranking（AUC / AP）分析。7B 一侧的逐条打分已在 CCDS 上齐备。
+2. N0 gate 或团队批准的 waiver，以及 N1 smoke-test 的原始证据。
 
 ## 快速复核
 

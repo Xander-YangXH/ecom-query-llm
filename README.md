@@ -8,7 +8,7 @@
   - [ ] Track B: A new architecture / new techniques for training / finetuning LLMs
 - **Topic**：电商搜索相关性判断。在 Amazon ESCI 数据集上微调 Qwen2.5-7B-Instruct，判断 query 与商品是什么关系。
 
-**一句话结论**：推荐方案是 QLoRA 微调 1 个 epoch，推理时再做先验调整。宏 F1 从零样本的 0.384 提高到 0.548，三个种子的范围是 [0.541, 0.554]。之后十余项改进都没能在 3 个种子上稳定超过它。瓶颈主要在标注质量，不在训练技巧。
+**一句话结论**：推荐方案是 QLoRA 微调 1 个 epoch，推理时再做先验调整。宏 F1 从零样本的 0.384 提高到 0.548，三个种子的范围是 [0.541, 0.554]。之后十余项改进都没能在 3 个种子上稳定超过它。瓶颈主要在标注质量，不在训练技巧。换成 14B 基座（N1）的初步结果是宏 F1 0.564，三个种子都高于 7B 的范围，但两边的打分协议还没统一，暂不算最终结论。
 
 ## 2. 任务与数据
 
@@ -63,6 +63,7 @@ flowchart LR
 | E8：追加 1,500 条 complement + 先验调整（3 种子） | 0.732 | 0.551 [0.544, 0.556] | 与 E2a 范围重叠 |
 | E10：C、I 各追加 1,500 条 + 先验调整（3 种子） | 0.728 | 0.551 [0.548, 0.555] | 排序质量最好，宏 F1 与 E2a 范围重叠 |
 | N2：bf16 LoRA（不量化）+ 先验调整（3 种子） | 0.727 | 0.552 [0.546, 0.555] | 与 E2a 范围重叠 |
+| N1：Qwen2.5-14B QLoRA + 先验调整（3 种子） | 0.742 | 0.564 [0.562, 0.565] | 初步：三个种子都高于 E2a 范围，但打分协议尚未与 E2a 统一 |
 | 3B 学生（蒸馏方向，人工标签）+ 先验调整（3 种子） | 0.723 | 0.517 [0.510, 0.529] | 低 3.1 个百分点；部署速度快 47 倍 |
 
 ## 5. 实验过程与结果
@@ -196,6 +197,21 @@ flowchart LR
 - 人工复核与 Claude 的方向一致：模型一致反对原标注的样本里，确实有相当一部分是标注有争议。
 - 外推比例是“人工支持模型的比例”，不是已逐条证实的错误标签率。B1、B2 可能有重叠，不能相加。
 
+### 5.5 模型容量：N1 Qwen2.5-14B（组员，[ecom-query-llm/reports/n1/](ecom-query-llm/reports/n1/README.md)）
+
+只把 E2a 的基座从 Qwen2.5-7B-Instruct 换成 Qwen2.5-14B-Instruct，数据、提示词、QLoRA 超参和有效 batch 都不变。判断标准运行前写在技术日志 S27。
+
+| 种子 | 最优 checkpoint | 训练时间 | 先验调整后准确率 | 先验调整后宏 F1 |
+| --- | --- | --- | --- | --- |
+| 42 | 625 | 2.26 小时 | 0.7330 | 0.5642 |
+| 43 | 400 | 2.36 小时 | 0.7426 | 0.5646 |
+| 44 | 625 | 2.45 小时 | 0.7491 | 0.5617 |
+| **均值** | — | 共 7.06 GPU 小时 | **0.7416** | **0.5635** [0.5617, 0.5646] |
+
+- 硬件：AutoDL 单卡 RTX 5090 32 GB，而不是原计划的 A100 80 GB。为放进显存，micro-batch 改为 1、梯度累积 32，有效 batch 仍是 32。
+- 与 E2a 相比：E2a 三个种子为 [0.5405, 0.5538]，N1 的三个种子都更高，均值高约 1.6 个百分点。
+- **还不是最终结论**：N1 打分时开启了 4bit 的 double quantization，与训练时一致；历史 E2a 的打分没有开启。要先用同一协议重新给 E2a 三个适配器打分，再补做 clean/merged、bootstrap 和排序指标，才能判断是否“稳定提升”。E2a 三个适配器保留在 CCDS 上。
+
 ## 6. 结论
 
 1. **稳定的收益只有两项**：
@@ -209,10 +225,11 @@ flowchart LR
    - 4bit 量化没有可测损失（N2）。
    - 3B 学生加 vLLM 能以 47 倍速度部署，宏 F1 只低 3.1 个百分点（D4）。
    - 同样的方法迁移到中文重排也有效（D5）。
+5. **模型容量可能是另一个瓶颈**：14B 的三个种子都高于 7B（0.564 对 0.548），这是目前唯一一个种子范围不重叠的改进；统一打分协议后才能确认（N1）。
 
 ## 7. 局限与下一步
 
-- **模型容量**：所有结论都基于 7B。14B 和全参数微调计划在 NSCC 上检验，见 [NSCC_PLAN.md](ecom-query-llm/docs/NSCC_PLAN.md)。
+- **模型容量**：14B（N1）的结果还缺统一协议的 E2a 对照；全参数微调尚未做，计划见 [NSCC_PLAN.md](ecom-query-llm/docs/NSCC_PLAN.md)。
 - **D3 的标注**：用 7B 自己标注，质量是主要局限，计划用 72B 重新标注（N4）。
 - **标注审计**：每组只有 20–50 条样本，比例有抽样不确定性。组员的复核过程中讨论过少数边界案例，因此不是完全独立的第二位判断人。
 - **测试集**：只用了 ESCI 的美国英文子集；D5 的中文实验只有一个正例标注。
@@ -243,7 +260,8 @@ ecom-query-llm/            实验代码、配置、脚本、报告与技术日�
   docs/DEVLOG.md           每一步的原因、做法、结果和问题（S0–S26，P1–P20）
   docs/TEAM_TODO.md        组员待办与 NSCC 上手指南
   docs/NSCC_PLAN.md        NSCC 阶段计划
-  reports/                 每个实验的指标与对比 JSON
+  docs/N1_AUTODL_GUIDE.md  N1（14B）在 AutoDL 上的运行指南
+  reports/                 每个实验的指标与对比 JSON（reports/n1/ 为 14B 三种子结果）
   analysis/                标注审计材料（E↔S、C/I、D3 抽查）
   src/ecomq/               数据处理、训练数据构建、评测（打分、先验调整、噪声感知、排序、MMLU、重排、测速）
   configs/sft/             LLaMA-Factory 训练配置（默认 e2_relevance_qlora_1ep_best.yaml）
@@ -266,3 +284,4 @@ cd ecom-query-llm && pip install -e ".[dev]" && make test
 - [ecom-query-llm](ecom-query-llm/README.md)：ESCI 相关性四分类的 QLoRA 微调、评测与 D1–D5 补充实验；完整技术日志见 [DEVLOG](ecom-query-llm/docs/DEVLOG.md)，结果文件在 [reports](ecom-query-llm/reports/)。
 - 实验记录：[N0 / N2 实验结果](EXPERIMENT_RESULTS.md)。
 - [B1–B3 human label audit](B3_RESULTS.md)
+- N1 14B 容量实验（`zyq` 分支）：[N1 结果说明](ecom-query-llm/reports/n1/README.md)、[AutoDL 指南](ecom-query-llm/docs/N1_AUTODL_GUIDE.md)。

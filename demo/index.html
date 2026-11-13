@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>电商搜索相关性演示</title>
+<title>Search Relevance Demo</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,6 +55,9 @@ header.top .wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wra
 .brand b { font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: -.01em; }
 .brand span { color: var(--muted); font-size: 13px; }
 nav.tabs { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+button.lang { font: 600 13px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button.lang:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 640px) { header.top .wrap { gap: 10px 16px; } .brand span { display: none; } nav.tabs { margin-left: 0; order: 3; width: 100%; } button.lang { margin-left: auto; } }
 nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 7px 12px; border-radius: 8px; }
 nav.tabs a[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
 nav.tabs a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -116,6 +119,7 @@ p { margin: 0; }
 .agree { color: var(--muted); }
 .agree.no { color: var(--i); font-weight: 600; }
 .bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+aside .bars { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .bar { display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
 .bar i { display: block; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .bar i b { display: block; height: 100%; }
@@ -165,6 +169,7 @@ th { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .03
 td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 tr.best td { font-weight: 600; }
 tr.up td { color: var(--accent); font-weight: 600; }
+html[lang="en"] tr.up td:first-child::after { content: "stable gain"; }
 tr.up td:first-child::after { content: "稳定提升"; font-size: 11px; font-weight: 600; padding: 1px 6px; margin-left: 6px; border-radius: 999px; background: var(--accent-soft); }
 footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -172,12 +177,13 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
 
 <header class="top">
   <div class="wrap">
-    <div class="brand"><b>搜索相关性助手</b><span>Qwen2.5-7B + QLoRA · AI6130 Track A</span></div>
+    <div class="brand"><b><span data-i18n="0">搜索相关性助手</span></b><span>Qwen2.5-7B + QLoRA · AI6130 Track A</span></div>
     <nav class="tabs" aria-label="页面">
-      <a href="#search" data-view="search">英文搜索</a>
-      <a href="#rerank" data-view="rerank">中文重排</a>
-      <a href="#results" data-view="results">项目成果</a>
+      <a href="#search" data-view="search"><span data-i18n="1">英文搜索</span></a>
+      <a href="#rerank" data-view="rerank"><span data-i18n="2">中文重排</span></a>
+      <a href="#results" data-view="results"><span data-i18n="3">项目成果</span></a>
     </nav>
+    <button class="lang" id="lang-btn" type="button" aria-label="切换到中文" lang="zh">中文</button>
   </div>
 </header>
 
@@ -191,12 +197,12 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
           <input id="en-q" type="search" autocomplete="off" placeholder="搜索 2,500 个真实 Amazon 搜索词，例如 dyson hair dryer" aria-label="搜索词">
           <div class="suggest" id="en-suggest" hidden></div>
         </div>
-        <button class="btn" id="en-random" type="button">随机一个</button>
-        <button class="btn" id="en-dispute" type="button">看一个模型与标注不一致的例子</button>
+        <button class="btn" id="en-random" type="button"><span data-i18n="4">随机一个</span></button>
+        <button class="btn" id="en-dispute" type="button"><span data-i18n="5">看一个模型与标注不一致的例子</span></button>
       </div>
-      <div class="chips" id="en-chips"><span class="label">示例：</span></div>
+      <div class="chips" id="en-chips"><span class="label"><span data-i18n="6">示例：</span></span></div>
       <div class="qrow">
-        <label class="toggle"><input type="checkbox" id="en-prior" checked> 推理时先验调整</label>
+        <label class="toggle"><input type="checkbox" id="en-prior" checked> <span data-i18n="7">推理时先验调整</span></label>
         <span class="small muted" id="en-bias-note"></span>
       </div>
     </div>
@@ -204,7 +210,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     <div class="split">
       <div class="panel">
         <div class="panel-head">
-          <div><div class="eyebrow">搜索结果 · 按模型判断重排</div><h2 id="en-title">—</h2></div>
+          <div><div class="eyebrow"><span data-i18n="8">搜索结果 · 按模型判断重排</span></div><h2 id="en-title">—</h2></div>
           <span class="small muted" id="en-agree"></span>
         </div>
         <div class="list" id="en-main"></div>
@@ -214,13 +220,13 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
         </details>
       </div>
       <aside class="panel">
-        <div><div class="eyebrow">搭配购买</div><h2>模型判为“可搭配”的商品</h2></div>
+        <div><div class="eyebrow"><span data-i18n="10">搭配购买</span></div><h2><span data-i18n="11">模型判为“可搭配”的商品</span></h2></div>
         <div class="list" id="en-comp"></div>
         <div class="stat-row">
-          <div class="stat"><div class="v" id="en-acc">—</div><div class="k">测试集准确率（1 万条）</div></div>
-          <div class="stat"><div class="v" id="en-f1">—</div><div class="k">测试集宏 F1</div></div>
+          <div class="stat"><div class="v" id="en-acc">—</div><div class="k"><span data-i18n="12">测试集准确率（1 万条）</span></div></div>
+          <div class="stat"><div class="v" id="en-f1">—</div><div class="k"><span data-i18n="13">测试集宏 F1</span></div></div>
         </div>
-        <p class="small muted">两个数字随“推理时先验调整”开关一起变化，在浏览器里用全部 1 万条打分现场重算。</p>
+        <p class="small muted"><span data-i18n="14">两个数字随“推理时先验调整”开关一起变化，在浏览器里用全部 1 万条打分现场重算。</span></p>
       </aside>
     </div>
   </section>
@@ -234,97 +240,138 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
           <input id="zh-q" type="search" autocomplete="off" placeholder="搜索 1,000 个淘宝搜索词，例如 北极虾仁" aria-label="中文搜索词">
           <div class="suggest" id="zh-suggest" hidden></div>
         </div>
-        <button class="btn" id="zh-random" type="button">随机一个</button>
+        <button class="btn" id="zh-random" type="button"><span data-i18n="15">随机一个</span></button>
         <div class="seg" role="group" aria-label="重排模型">
-          <button type="button" id="zh-m-ft" aria-pressed="true">微调 7B</button>
-          <button type="button" id="zh-m-zs" aria-pressed="false">零样本 7B</button>
+          <button type="button" id="zh-m-ft" aria-pressed="true"><span data-i18n="16">微调 7B</span></button>
+          <button type="button" id="zh-m-zs" aria-pressed="false"><span data-i18n="17">零样本 7B</span></button>
         </div>
       </div>
-      <div class="chips" id="zh-chips"><span class="label">示例：</span></div>
+      <div class="chips" id="zh-chips"><span class="label"><span data-i18n="18">示例：</span></span></div>
     </div>
     <div class="panel">
       <div class="panel-head">
-        <div><div class="eyebrow">BM25 召回前 20 名 → 大模型重排</div><h2 id="zh-title">—</h2></div>
+        <div><div class="eyebrow"><span data-i18n="19">BM25 召回前 20 名 → 大模型重排</span></div><h2 id="zh-title">—</h2></div>
         <span class="move" id="zh-move"></span>
       </div>
       <div class="cols">
-        <div><h3>BM25 原始顺序</h3><ol class="rank" id="zh-bm25"></ol></div>
+        <div><h3><span data-i18n="20">BM25 原始顺序</span></h3><ol class="rank" id="zh-bm25"></ol></div>
         <div><h3 id="zh-model-h">模型重排后</h3><ol class="rank" id="zh-model"></ol></div>
       </div>
-      <p class="small muted">分数 = log p(相关) − log p(不相关)。每个搜索词只标注了一个正确商品，其余候选里也可能有其实相关的商品。</p>
+      <p class="small muted"><span data-i18n="22">分数 = log p(相关) − log p(不相关)。每个搜索词只标注了一个正确商品，其余候选里也可能有其实相关的商品。</span></p>
     </div>
     <div class="stat-row three">
-      <div class="stat"><div class="v num" id="zh-mrr-bm25">—</div><div class="k">BM25 · MRR@10（1,000 个词）</div></div>
-      <div class="stat"><div class="v num" id="zh-mrr-zs">—</div><div class="k">零样本 7B · MRR@10</div></div>
-      <div class="stat"><div class="v num" id="zh-mrr-ft">—</div><div class="k">微调 7B · MRR@10</div></div>
+      <div class="stat"><div class="v num" id="zh-mrr-bm25">—</div><div class="k"><span data-i18n="23">BM25 · MRR@10（1,000 个词）</span></div></div>
+      <div class="stat"><div class="v num" id="zh-mrr-zs">—</div><div class="k"><span data-i18n="24">零样本 7B · MRR@10</span></div></div>
+      <div class="stat"><div class="v num" id="zh-mrr-ft">—</div><div class="k"><span data-i18n="25">微调 7B · MRR@10</span></div></div>
     </div>
   </section>
 
   <!-- Results -->
   <section class="view" id="view-results" hidden>
     <div class="intro">
-      <div class="eyebrow">NTU AI6130 · Track A：LLM 的实际应用</div>
-      <h1>把开源大模型做成电商搜索的相关性判别器</h1>
-      <p class="lede">输入用户的搜索词和一个商品，模型判断两者是“完全匹配、可替代、可搭配、不相关”中的哪一种。模型放在召回之后、展示之前，用来重排结果、过滤无关商品，并把可搭配的商品放进推荐位。微调前后 MMLU 都是 0.735，不伤通用能力。</p>
+      <div class="eyebrow"><span data-i18n="26">NTU AI6130 · Track A：LLM 的实际应用</span></div>
+      <h1><span data-i18n="27">把开源大模型做成电商搜索的相关性判别器</span></h1>
+      <p class="lede"><span data-i18n="28">输入用户的搜索词和一个商品，模型判断两者是“完全匹配、可替代、可搭配、不相关”中的哪一种。模型放在召回之后、展示之前，用来重排结果、过滤无关商品，并把可搭配的商品放进推荐位。微调前后 MMLU 都是 0.735，不伤通用能力。</span></p>
     </div>
     <div class="tiles">
-      <div class="tile"><div class="v">0.384 <small>→</small> 0.548</div><div class="k">宏 F1：零样本 → 微调 + 先验调整（3 个种子均值）</div></div>
-      <div class="tile"><div class="v">47<small>×</small></div><div class="k">3B 蒸馏版 + vLLM 每秒 399 条，宏 F1 只低 3.1 个百分点</div></div>
-      <div class="tile"><div class="v">0.548 <small>→</small> 0.564</div><div class="k">7B → 14B 基座（N1）：同一打分协议下三个种子都更高，唯一稳定超过 7B 的训练侧改动</div></div>
-      <div class="tile"><div class="v">0.256 <small>→</small> 0.346</div><div class="k">中文重排 MRR@10：零样本 → 微调</div></div>
+      <div class="tile"><div class="v">0.384 <small>→</small> 0.548</div><div class="k"><span data-i18n="29">宏 F1：零样本 → 微调 + 先验调整（3 个种子均值）</span></div></div>
+      <div class="tile"><div class="v">47<small>×</small></div><div class="k"><span data-i18n="30">3B 蒸馏版 + vLLM 每秒 399 条，宏 F1 只低 3.1 个百分点</span></div></div>
+      <div class="tile"><div class="v">0.548 <small>→</small> 0.564</div><div class="k"><span data-i18n="31">7B → 14B 基座（N1）：同一打分协议下三个种子都更高，唯一稳定超过 7B 的训练侧改动</span></div></div>
+      <div class="tile"><div class="v">0.256 <small>→</small> 0.346</div><div class="k"><span data-i18n="32">中文重排 MRR@10：零样本 → 微调</span></div></div>
     </div>
     <div class="panel">
-      <h2>模型在搜索链路中的位置</h2>
+      <h2><span data-i18n="33">模型在搜索链路中的位置</span></h2>
       <div class="flow">
-        <div class="step"><span class="n">1</span><h3>召回</h3><p class="small muted">BM25 或向量检索取前 20–100 个商品</p></div>
-        <div class="step model"><span class="n">2</span><h3>相关性判别（本项目）</h3><p class="small">每个候选输出四类的对数概率，再加先验偏置</p></div>
-        <div class="step"><span class="n">3</span><h3>重排与分流</h3><p class="small muted">完全匹配在前、可替代其次；可搭配进推荐位；不相关降权</p></div>
-        <div class="step"><span class="n">4</span><h3>展示与质检</h3><p class="small muted">与人工标注长期相反的样本送人工复核</p></div>
+        <div class="step"><span class="n">1</span><h3><span data-i18n="34">召回</span></h3><p class="small muted"><span data-i18n="35">BM25 或向量检索取前 20–100 个商品</span></p></div>
+        <div class="step model"><span class="n">2</span><h3><span data-i18n="36">相关性判别（本项目）</span></h3><p class="small"><span data-i18n="37">每个候选输出四类的对数概率，再加先验偏置</span></p></div>
+        <div class="step"><span class="n">3</span><h3><span data-i18n="38">重排与分流</span></h3><p class="small muted"><span data-i18n="39">完全匹配在前、可替代其次；可搭配进推荐位；不相关降权</span></p></div>
+        <div class="step"><span class="n">4</span><h3><span data-i18n="40">展示与质检</span></h3><p class="small muted"><span data-i18n="41">与人工标注长期相反的样本送人工复核</span></p></div>
       </div>
     </div>
     <div class="split two">
       <div class="panel">
-        <h2>效果（ESCI 测试集，2,500 个词、1 万条）</h2>
+        <h2><span data-i18n="42">效果（ESCI 测试集，2,500 个词、1 万条）</span></h2>
         <div class="tbl"><table>
-          <thead><tr><th>方案</th><th class="n">准确率</th><th class="n">宏 F1</th></tr></thead>
+          <thead><tr><th><span data-i18n="43">方案</span></th><th class="n"><span data-i18n="44">准确率</span></th><th class="n"><span data-i18n="45">宏 F1</span></th></tr></thead>
           <tbody>
-            <tr><td>基座零样本</td><td class="n">0.550</td><td class="n">0.384</td></tr>
-            <tr><td>QLoRA 微调 1 个 epoch</td><td class="n">0.739</td><td class="n">0.535</td></tr>
-            <tr class="best"><td>+ 推理时先验调整（推荐）</td><td class="n">0.728</td><td class="n">0.548</td></tr>
-            <tr><td>+ C、I 各追加 1,500 条</td><td class="n">0.728</td><td class="n">0.551</td></tr>
-            <tr><td>3B 蒸馏版（部署用）</td><td class="n">0.723</td><td class="n">0.517</td></tr>
-            <tr class="up"><td>换成 14B 基座（N1）</td><td class="n">0.742</td><td class="n">0.564</td></tr>
+            <tr><td><span data-i18n="46">基座零样本</span></td><td class="n">0.550</td><td class="n">0.384</td></tr>
+            <tr><td><span data-i18n="47">QLoRA 微调 1 个 epoch</span></td><td class="n">0.739</td><td class="n">0.535</td></tr>
+            <tr class="best"><td><span data-i18n="48">+ 推理时先验调整（推荐）</span></td><td class="n">0.728</td><td class="n">0.548</td></tr>
+            <tr><td><span data-i18n="49">+ C、I 各追加 1,500 条</span></td><td class="n">0.728</td><td class="n">0.551</td></tr>
+            <tr><td><span data-i18n="50">3B 蒸馏版（部署用）</span></td><td class="n">0.723</td><td class="n">0.517</td></tr>
+            <tr class="up"><td><span data-i18n="51">换成 14B 基座（N1）</span></td><td class="n">0.742</td><td class="n">0.564</td></tr>
           </tbody>
         </table></div>
-        <p class="small muted">均为 3 个种子的均值（前两行为单次）。只有种子范围不重叠才算稳定提升。“追加 C、I”一行与推荐方案的范围重叠；14B 与 7B 按同一协议打分（4bit 加 double quantization）后，宏 F1 [0.562, 0.565] 对 [0.544, 0.552]，E、S 合并后 0.605 对 0.584，三个种子的范围都不重叠；提升主要来自“可搭配”一类。</p>
+        <p class="small muted"><span data-i18n="52">均为 3 个种子的均值（前两行为单次）。只有种子范围不重叠才算稳定提升。“追加 C、I”一行与推荐方案的范围重叠；14B 与 7B 按同一协议打分（4bit 加 double quantization）后，宏 F1 [0.562, 0.565] 对 [0.544, 0.552]，E、S 合并后 0.605 对 0.584，三个种子的范围都不重叠；提升主要来自“可搭配”一类。</span></p>
       </div>
       <div class="panel">
-        <h2>部署速度（单卡 L40S）</h2>
+        <h2><span data-i18n="53">部署速度（单卡 L40S）</span></h2>
         <div class="tbl"><table>
-          <thead><tr><th>方式</th><th class="n">条/秒</th><th class="n">单条延迟</th></tr></thead>
+          <thead><tr><th><span data-i18n="54">方式</span></th><th class="n"><span data-i18n="55">条/秒</span></th><th class="n"><span data-i18n="56">单条延迟</span></th></tr></thead>
           <tbody>
-            <tr><td>7B，4 个候选各打分一次</td><td class="n">8.5</td><td class="n">—</td></tr>
-            <tr><td>7B，只看第一个不同的 token</td><td class="n">35.0</td><td class="n">60 ms</td></tr>
-            <tr><td>3B，只看第一个不同的 token</td><td class="n">61.6</td><td class="n">34 ms</td></tr>
+            <tr><td><span data-i18n="57">7B，4 个候选各打分一次</span></td><td class="n">8.5</td><td class="n">—</td></tr>
+            <tr><td><span data-i18n="58">7B，只看第一个不同的 token</span></td><td class="n">35.0</td><td class="n">60 ms</td></tr>
+            <tr><td><span data-i18n="59">3B，只看第一个不同的 token</span></td><td class="n">61.6</td><td class="n">34 ms</td></tr>
             <tr class="best"><td>3B + vLLM</td><td class="n">398.6</td><td class="n">14.5 ms</td></tr>
             <tr><td>1.5B + vLLM</td><td class="n">762.4</td><td class="n">9.2 ms</td></tr>
           </tbody>
         </table></div>
-        <p class="small muted">4 个标签在第一个不同的 token 之前完全相同，所以一次前向就能比较 4 个标签。</p>
+        <p class="small muted"><span data-i18n="60">4 个标签在第一个不同的 token 之前完全相同，所以一次前向就能比较 4 个标签。</span></p>
       </div>
     </div>
     <div class="panel">
-      <h2>演示数据从哪里来</h2>
-      <p class="small">“英文搜索”和“中文重排”展示的都是模型在留出集上的真实打分，没有一条是挑选或改写过的：ESCI 测试集 2,500 个搜索词（每个 4 个商品，模型为 E2a seed 42），Multi-CPR 电商开发集 1,000 个搜索词（每个 BM25 前 20 名，零样本与微调 seed 42）。页面里的准确率、宏 F1 和 MRR 都在浏览器里从这些打分现场计算，与项目报告一致。模型本身需要 GPU，所以这里不做在线推理。</p>
+      <h2><span data-i18n="61">演示数据从哪里来</span></h2>
+      <p class="small"><span data-i18n="62">“英文搜索”和“中文重排”展示的都是模型在留出集上的真实打分，没有一条是挑选或改写过的：ESCI 测试集 2,500 个搜索词（每个 4 个商品，模型为 E2a seed 42），Multi-CPR 电商开发集 1,000 个搜索词（每个 BM25 前 20 名，零样本与微调 seed 42）。页面里的准确率、宏 F1 和 MRR 都在浏览器里从这些打分现场计算，与项目报告一致。模型本身需要 GPU，所以这里不做在线推理。</span></p>
     </div>
   </section>
 </main>
-<footer class="wrap">数据：Amazon Shopping Queries Dataset（ESCI）、Multi-CPR（电商子集）。代码与技术日志：NTU-AI6130-LLM-Project 仓库的 ecom-query-llm 目录。</footer>
+<footer class="wrap"><span data-i18n="63">数据：Amazon Shopping Queries Dataset（ESCI）、Multi-CPR（电商子集）。代码与技术日志：NTU-AI6130-LLM-Project 仓库的 ecom-query-llm 目录。</span></footer>
 
 <script>
 (() => {
   const L = ["exact", "substitute", "complement", "irrelevant"];
-  const ZH = { exact: "完全匹配", substitute: "可替代", complement: "可搭配", irrelevant: "不相关" };
+  const NAMES = {
+    zh: { exact: "完全匹配", substitute: "可替代", complement: "可搭配", irrelevant: "不相关" },
+    en: { exact: "Exact", substitute: "Substitute", complement: "Complement", irrelevant: "Irrelevant" },
+  };
+  // Static text: Chinese is read from the page itself; English lives here, keyed by data-i18n.
+  const EN_STATIC = {"0": "Search Relevance Assistant", "1": "English search", "2": "Chinese rerank", "3": "Results", "4": "Random", "5": "Show a model–label disagreement", "6": "Examples:", "7": "Inference-time prior adjustment", "8": "Search results · reranked by the model", "10": "Bought together", "11": "Items the model judged “complement”", "12": "Test accuracy (10k rows)", "13": "Test macro F1", "14": "Both numbers follow the prior-adjustment switch and are recomputed in your browser from all 10,000 scores.", "15": "Random", "16": "Fine-tuned 7B", "17": "Zero-shot 7B", "18": "Examples:", "19": "BM25 top 20 → LLM rerank", "20": "BM25 order", "22": "Score = log p(relevant) − log p(irrelevant). Each query has only one labelled correct item; other candidates may also be relevant.", "23": "BM25 · MRR@10 (1,000 queries)", "24": "Zero-shot 7B · MRR@10", "25": "Fine-tuned 7B · MRR@10", "26": "NTU AI6130 · Track A: practical applications of LLMs", "27": "Turning an open LLM into a relevance judge for e-commerce search", "28": "Given a shopper’s query and a product, the model decides whether the product is an exact match, a substitute, a complement or irrelevant. It sits after retrieval and before display: it reranks results, filters irrelevant items and moves complements into a recommendation slot. MMLU is 0.735 before and after fine-tuning, so general ability is intact.", "29": "Macro F1: zero-shot → fine-tuned + prior adjustment (mean of 3 seeds)", "30": "3B distilled model + vLLM: 399 rows/s, only 3.1 points lower macro F1", "31": "7B → 14B base (N1): higher on all three seeds under the same scoring protocol; the only training-side change that stably beats 7B", "32": "Chinese rerank MRR@10: zero-shot → fine-tuned", "33": "Where the model sits in the search pipeline", "34": "Retrieve", "35": "BM25 or vector search returns the top 20–100 items", "36": "Relevance judge (this project)", "37": "Log-probabilities of the four classes for each candidate, plus a prior bias", "38": "Rerank and route", "39": "Exact first, substitutes next; complements to recommendations; irrelevant demoted", "40": "Display and QA", "41": "Items where the model persistently disagrees with the label go to human review", "42": "Quality (ESCI test set, 2,500 queries, 10k rows)", "43": "System", "44": "Accuracy", "45": "Macro F1", "46": "Base model, zero-shot", "47": "QLoRA fine-tuning, 1 epoch", "48": "+ inference-time prior adjustment (recommended)", "49": "+ 1,500 extra C and I rows each", "50": "3B distilled model (deployment)", "51": "14B base model (N1)", "52": "Means of 3 seeds (first two rows: single run). A gain counts as stable only if the seed ranges do not overlap. The “extra C and I” row overlaps the recommended system. With 14B and 7B scored under the same protocol (4-bit with double quantization), macro F1 is [0.562, 0.565] vs [0.544, 0.552], and 0.605 vs 0.584 with E and S merged; the seed ranges do not overlap. The gain comes mainly from the complement class.", "53": "Serving speed (one L40S GPU)", "54": "Method", "55": "rows/s", "56": "Latency per row", "57": "7B, scoring each of 4 candidates", "58": "7B, first differing token only", "59": "3B, first differing token only", "60": "The four labels are identical up to their first differing token, so one forward pass compares all four.", "61": "Where the demo data comes from", "62": "“English search” and “Chinese rerank” show the model’s real scores on held-out data; nothing is cherry-picked or edited: 2,500 ESCI test queries (4 items each, model E2a seed 42) and 1,000 Multi-CPR e-commerce dev queries (BM25 top 20 each, zero-shot and fine-tuned seed 42). Accuracy, macro F1 and MRR on this page are computed live in the browser from these scores and match the project reports. The models need a GPU, so there is no live inference here.", "63": "Data: Amazon Shopping Queries Dataset (ESCI), Multi-CPR (e-commerce subset). Code and dev log: the ecom-query-llm folder of the NTU-AI6130-LLM-Project repository."};
+  const ATTR = {
+    "en-q": { placeholder: ["搜索 2,500 个真实 Amazon 搜索词，例如 dyson hair dryer", "Search 2,500 real Amazon queries, e.g. dyson hair dryer"], "aria-label": ["搜索词", "Search query"] },
+    "zh-q": { placeholder: ["搜索 1,000 个淘宝搜索词，例如 北极虾仁", "Search 1,000 Taobao queries, e.g. 北极虾仁"], "aria-label": ["中文搜索词", "Chinese query"] },
+  };
+  const TX = {
+    zh: {
+      title: "电商搜索相关性演示", nav: "页面", seg: "重排模型", btn: "English", btnLabel: "Switch to English", btnLang: "en",
+      noMatch: q => `没有找到包含“${q}”的搜索词`,
+      model: "模型：", gold: "人工标注：", agreeY: "，一致", agreeN: "，不一致",
+      noMain: "模型认为这 4 个商品都不是用户要找的。", noComp: "这个搜索词没有可搭配的商品。",
+      filtered: n => `已过滤 ${n} 个不相关商品`, agree: n => `4 个商品中 ${n} 个与人工标注一致`,
+      biasOn: b => `偏置（只在调参集上选定）：可替代 +${b[1]}，可搭配 +${b[2]}，不相关 +${b[3]}`,
+      biasOff: "关闭后直接取 4 个标签中对数概率最大的一个",
+      ft: "微调 7B", zs: "零样本 7B", after: " 重排后",
+      notIn: "正确商品不在 BM25 前 20 名里", move: (a, b) => `正确商品：第 ${a} 名 → 第 ${b} 名`,
+      loading: "正在加载 1 万条打分…",
+      loadFail: "数据没有加载出来。本地打开时请在 demo 目录运行 python -m http.server，再访问 http://localhost:8000。",
+    },
+    en: {
+      title: "E-commerce Search Relevance Demo", nav: "Pages", seg: "Rerank model", btn: "中文", btnLabel: "切换到中文", btnLang: "zh",
+      noMatch: q => `No query contains “${q}”`,
+      model: "Model: ", gold: "Human label: ", agreeY: " · agrees", agreeN: " · disagrees",
+      noMain: "The model thinks none of these 4 items is what the shopper wants.", noComp: "No complementary items for this query.",
+      filtered: n => `${n} irrelevant item${n === 1 ? "" : "s"} filtered out`, agree: n => `${n} of 4 items agree with the human label`,
+      biasOn: b => `Bias (chosen on the tune split only): substitute +${b[1]}, complement +${b[2]}, irrelevant +${b[3]}`,
+      biasOff: "Off: take the label with the highest log-probability",
+      ft: "Fine-tuned 7B", zs: "Zero-shot 7B", after: " rerank",
+      notIn: "The correct item is not in the BM25 top 20", move: (a, b) => `Correct item: rank ${a} → rank ${b}`,
+      loading: "Loading 10,000 scores…",
+      loadFail: "The data did not load. To open locally, run python -m http.server in the demo folder and visit http://localhost:8000.",
+    },
+  };
+  let lang = "en";
+  try { if (localStorage.getItem("demo-lang") === "zh") lang = "zh"; } catch (e) {}
+  const t = () => TX[lang];
+  const nm = l => NAMES[lang][l];
   const K = ["e", "s", "c", "i"];
   const EN_EX = ["dyson hhair dryer", "apple ipad pro 10,5", "xbox one controller wireless ps3", "excalibur 5 tray dehydrator",
                  "snake plant live", "gummy vitamins without iron", "kids kindle fire tablet", "medical clogs for women"];
@@ -352,7 +399,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
       hits = [];
       for (let i = 0; i < list().length && hits.length < 8; i++) if (list()[i].q.toLowerCase().includes(q)) hits.push(i);
       box.innerHTML = hits.length ? hits.map((i, j) => `<button type="button" data-i="${i}" class="${j === on ? "on" : ""}">${esc(list()[i].q)}</button>`).join("")
-                                  : `<div class="empty">没有找到包含“${esc(input.value)}”的搜索词</div>`;
+                                  : `<div class="empty">${t().noMatch(esc(input.value))}</div>`;
       box.hidden = false;
     });
     box.addEventListener("mousedown", e => { const b = e.target.closest("button"); if (b) { e.preventDefault(); pick(+b.dataset.i); close(); } });
@@ -384,11 +431,11 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
   }
   function card(item, b) {
     const [title, gold, lp] = item, pr = predict(lp, b), k = K[pr.label], ok = pr.label === gold;
-    const bars = L.map((l, j) => `<div class="bar ${K[j]}"><span>${ZH[l]} <span class="num">${Math.round(pr.p[j] * 100)}%</span></span><i><b style="width:${(pr.p[j] * 100).toFixed(1)}%"></b></i></div>`).join("");
-    return `<article class="card"><div class="thumb ${k}" aria-hidden="true">${ZH[L[pr.label]][0]}</div><div style="min-width:0">
+    const bars = L.map((l, j) => `<div class="bar ${K[j]}"><span>${nm(l)} <span class="num">${Math.round(pr.p[j] * 100)}%</span></span><i><b style="width:${(pr.p[j] * 100).toFixed(1)}%"></b></i></div>`).join("");
+    return `<article class="card"><div class="thumb ${k}" aria-hidden="true">${nm(L[pr.label])[0]}</div><div style="min-width:0">
       <div class="title">${esc(title)}</div>
-      <div class="meta"><span class="pill ${k}">模型：${ZH[L[pr.label]]} ${Math.round(pr.p[pr.label] * 100)}%</span>
-      <span class="agree ${ok ? "" : "no"}">人工标注：${ZH[L[gold]]}${ok ? "，一致" : "，不一致"}</span></div>
+      <div class="meta"><span class="pill ${k}">${t().model}${nm(L[pr.label])} ${Math.round(pr.p[pr.label] * 100)}%</span>
+      <span class="agree ${ok ? "" : "no"}">${t().gold}${nm(L[gold])}${ok ? t().agreeY : t().agreeN}</span></div>
       <div class="bars">${bars}</div></div></article>`;
   }
   function renderEN() {
@@ -399,13 +446,13 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     const main = rows.filter(r => r.pr.label <= 1).sort((a, c) => order(a) - order(c));
     const comp = rows.filter(r => r.pr.label === 2), irr = rows.filter(r => r.pr.label === 3);
     $("en-title").textContent = q.q;
-    $("en-main").innerHTML = main.length ? main.map(r => card(r.it, b)).join("") : `<div class="empty">模型认为这 4 个商品都不是用户要找的。</div>`;
-    $("en-comp").innerHTML = comp.length ? comp.map(r => card(r.it, b)).join("") : `<div class="empty">这个搜索词没有可搭配的商品。</div>`;
+    $("en-main").innerHTML = main.length ? main.map(r => card(r.it, b)).join("") : `<div class="empty">${t().noMain}</div>`;
+    $("en-comp").innerHTML = comp.length ? comp.map(r => card(r.it, b)).join("") : `<div class="empty">${t().noComp}</div>`;
     $("en-filtered").innerHTML = irr.map(r => card(r.it, b)).join("");
     $("en-filtered-box").hidden = !irr.length;
-    $("en-filtered-sum").textContent = `已过滤 ${irr.length} 个不相关商品`;
+    $("en-filtered-sum").textContent = t().filtered(irr.length);
     const agree = rows.filter(r => r.pr.label === r.it[1]).length;
-    $("en-agree").textContent = `4 个商品中 ${agree} 个与人工标注一致`;
+    $("en-agree").textContent = t().agree(agree);
     $("en-q").value = q.q;
   }
   function renderENStats() {
@@ -417,8 +464,7 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     $("en-acc").textContent = (ok / n).toFixed(3);
     $("en-f1").textContent = (f1.reduce((a, v) => a + v, 0) / 4).toFixed(3);
     $("en-bias-note").textContent = $("en-prior").checked
-      ? `偏置（只在调参集上选定）：可替代 +${EN.bias[1]}，可搭配 +${EN.bias[2]}，不相关 +${EN.bias[3]}`
-      : "关闭后直接取 4 个标签中对数概率最大的一个";
+      ? t().biasOn(EN.bias) : t().biasOff;
   }
   function pickEN(i) { enCur = i; renderEN(); }
   $("en-prior").addEventListener("change", () => { renderEN(); renderENStats(); });
@@ -450,11 +496,11 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
     $("zh-title").textContent = q.q; $("zh-q").value = q.q;
     $("zh-bm25").innerHTML = q.items.map((it, i) => li(it, i + 1, null)).join("");
     $("zh-model").innerHTML = idx.map((i, r) => li(q.items[i], r + 1, q.items[i][k])).join("");
-    $("zh-model-h").textContent = (k === 3 ? "微调 7B" : "零样本 7B") + " 重排后";
+    $("zh-model-h").textContent = (k === 3 ? t().ft : t().zs) + t().after;
     const p = q.items.findIndex(it => it[1]), mv = $("zh-move");
-    if (p < 0) { mv.textContent = "正确商品不在 BM25 前 20 名里"; mv.className = "move small muted"; return; }
+    if (p < 0) { mv.textContent = t().notIn; mv.className = "move small muted"; return; }
     const nr = idx.indexOf(p) + 1, d = p + 1 - nr;
-    mv.textContent = `正确商品：第 ${p + 1} 名 → 第 ${nr} 名`;
+    mv.textContent = t().move(p + 1, nr);
     mv.className = "move " + (d > 0 ? "up" : d < 0 ? "down" : "");
   }
   function pickZH(i) { zhCur = i; renderZH(); }
@@ -467,14 +513,35 @@ footer { color: var(--muted); font-size: 13px; padding-block: 0 32px; }
   });
 
   // ---------- load ----------
-  $("en-main").innerHTML = `<div class="empty">正在加载 1 万条打分…</div>`;
+  // ---------- language ----------
+  const zhStatic = new Map();
+  document.querySelectorAll("[data-i18n]").forEach(el => zhStatic.set(el, el.innerHTML));
+  function applyLang() {
+    const en = lang === "en", T = t();
+    document.documentElement.lang = en ? "en" : "zh-CN";
+    document.title = T.title;
+    zhStatic.forEach((zh, el) => { el.innerHTML = en ? EN_STATIC[el.dataset.i18n] : zh; });
+    for (const [id, attrs] of Object.entries(ATTR)) for (const [a, v] of Object.entries(attrs)) $(id).setAttribute(a, v[en ? 1 : 0]);
+    document.querySelector("nav.tabs").setAttribute("aria-label", T.nav);
+    document.querySelector(".seg").setAttribute("aria-label", T.seg);
+    $("zh-model-h").textContent = (zhModel === 3 ? T.ft : T.zs) + T.after;
+    const btn = $("lang-btn"); btn.textContent = T.btn; btn.setAttribute("aria-label", T.btnLabel); btn.lang = T.btnLang;
+    if (EN) { renderEN(); renderENStats(); } else $("en-main").innerHTML = `<div class="empty">${T.loading}</div>`;
+    if (ZHD) renderZH();
+  }
+  $("lang-btn").addEventListener("click", () => {
+    lang = lang === "en" ? "zh" : "en";
+    try { localStorage.setItem("demo-lang", lang); } catch (e) {}
+    applyLang();
+  });
+  applyLang();
   fetch("data/en.json").then(r => r.json()).then(d => {
     EN = d;
     wireSearch($("en-q"), $("en-suggest"), () => EN.queries, pickEN);
     chips($("en-chips"), EN_EX, EN.queries, pickEN);
     enCur = Math.max(0, EN.queries.findIndex(q => q.q === EN_EX[0]));
     renderEN(); renderENStats();
-  }).catch(() => { $("en-main").innerHTML = `<div class="empty">数据没有加载出来。本地打开时请在 demo 目录运行 python -m http.server，再访问 http://localhost:8000。</div>`; });
+  }).catch(() => { $("en-main").innerHTML = `<div class="empty">${t().loadFail}</div>`; });
   fetch("data/zh.json").then(r => r.json()).then(d => {
     ZHD = d;
     wireSearch($("zh-q"), $("zh-suggest"), () => ZHD.queries, pickZH);

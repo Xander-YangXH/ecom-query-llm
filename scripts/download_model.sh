@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 下载基座模型到 $MODEL_ROOT/<目录名>。CCDS 头节点可以联网，下载不属于计算，可在头节点运行。
+# 下载基座模型到 $MODEL_ROOT/<目录名>。CCDS 头节点和 NSCC 登录节点都可以联网，下载不属于计算，可在登录节点运行。
 #   bash scripts/download_model.sh Qwen/Qwen2.5-7B-Instruct
 # 第二个参数可指定本地目录名，默认取仓库名最后一段。中断后重跑会跳过已下载的文件。
 set -eo pipefail
@@ -9,7 +9,10 @@ REPO_ID="${1:?用法：download_model.sh <hf_repo_id> [本地目录名]}"
 NAME="${2:-${REPO_ID##*/}}"
 
 set -a; source .env; set +a
-if command -v module >/dev/null 2>&1; then
+if [ -n "${ENV_PREFIX:-}" ]; then
+  # NSCC：环境装在 $ENV_PREFIX（见 scripts/setup_env_nscc.sh），直接用它的 bin
+  export PATH="$ENV_PREFIX/bin:$PATH"
+elif command -v module >/dev/null 2>&1; then
   module load anaconda
   eval "$(conda shell.bash hook)"
   conda activate ecomq

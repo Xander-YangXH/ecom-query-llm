@@ -2,6 +2,8 @@
 # 本地分析缓存（DEVLOG P16）：把调参集、测试集记录与指定模型的标签打分拉到 .cache/，
 # 再用 prior_adjust 重新生成“不加偏置”和“先验调整”两种预测。全部可以从服务器上的打分重建，不进 git。
 #   REMOTE_HOST=<user>@<ccds-host> bash scripts/local_cache.sh e2a e5-20k-s43 e6-rich-s42 ...
+# REMOTE_ROOT：服务器上数据与产出的根目录（相对家目录），CCDS 默认 ecomq，NSCC 用 scratch/ecomq。
+# SSH_OPTS：传给 scp 的额外参数，例如复用已登录的连接：SSH_OPTS="-o ControlPath=~/.ssh/<socket>"。
 # 参数是打分文件名的前缀（服务器上的 $OUTPUT_ROOT/label_scores/<name>-{tune,test}.jsonl）。
 # 输出：.cache/recs/{tune,test}.jsonl、.cache/scores/<name>-*.jsonl、.cache/preds/<name>-{raw,prior}.jsonl、
 #       .cache/reports/<name>.json（与 reports/ 中已提交的先验调整报告应一致，可用来核对）。
@@ -9,12 +11,14 @@ set -eo pipefail
 : "${REMOTE_HOST:?set REMOTE_HOST=<user>@<host>}"
 cd "$(dirname "$0")/.."
 C=.cache; mkdir -p $C/recs $C/scores $C/preds $C/reports
+R="${REMOTE_ROOT:-ecomq}"
+scp_q() { scp -q ${SSH_OPTS:-} "$@"; }
 PY="${PYTHON:-python3}"
-[ -s $C/recs/tune.jsonl ] || scp -q "$REMOTE_HOST:ecomq/data/esci_tune/splits/tune.jsonl" $C/recs/tune.jsonl
-[ -s $C/recs/test.jsonl ] || scp -q "$REMOTE_HOST:ecomq/data/esci_test2500/splits/test.jsonl" $C/recs/test.jsonl
+[ -s $C/recs/tune.jsonl ] || scp_q "$REMOTE_HOST:$R/data/esci_tune/splits/tune.jsonl" $C/recs/tune.jsonl
+[ -s $C/recs/test.jsonl ] || scp_q "$REMOTE_HOST:$R/data/esci_test2500/splits/test.jsonl" $C/recs/test.jsonl
 for n in "$@"; do
   for part in tune test; do
-    [ -s $C/scores/$n-$part.jsonl ] || scp -q "$REMOTE_HOST:ecomq/outputs/label_scores/$n-$part.jsonl" $C/scores/$n-$part.jsonl
+    [ -s $C/scores/$n-$part.jsonl ] || scp_q "$REMOTE_HOST:$R/outputs/label_scores/$n-$part.jsonl" $C/scores/$n-$part.jsonl
   done
   [ -s $C/preds/$n-prior.jsonl ] || PYTHONPATH=src $PY -m ecomq.eval.prior_adjust \
     --tune-recs $C/recs/tune.jsonl --tune-scores $C/scores/$n-tune.jsonl \

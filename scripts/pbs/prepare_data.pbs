@@ -1,0 +1,23 @@
+#!/bin/bash
+# 数据处理作业（CPU）：从 ESCI 原始文件生成 E2a 用的训练 / 验证集、调参集和 2,500 query 测试集，
+# 步骤与 scripts/autodl/prepare_n1_data.sh 相同，最后用 audit_n1 检查规模、query 是否重叠并写出 sha256。
+# 原始文件先在登录节点下载：ESCI_ONLY=1 RAW_DIR=$DATA_ROOT/raw bash scripts/download_data.sh
+#   scripts/pbs/submit.sh prepare_data
+#PBS -N ecomq-prepdata
+#PBS -q normal
+#PBS -l select=1:ncpus=4:mem=24gb
+#PBS -l walltime=00:40:00
+#PBS -j oe
+#PBS -o logs/
+set -eo pipefail
+source "${PBS_O_WORKDIR:?}/scripts/pbs/common.sh"
+
+START=$SECONDS
+python -m ecomq.data.prepare_esci --out-dir "$DATA_ROOT/e1_relevance"
+python -m ecomq.data.prepare_esci --out-dir "$DATA_ROOT/e2_rebal" --rebalance complement=0.10,irrelevant=0.20
+cmp "$DATA_ROOT/e1_relevance/splits/val.jsonl" "$DATA_ROOT/e2_rebal/splits/val.jsonl"
+python -m ecomq.data.prepare_esci --out-dir "$DATA_ROOT/esci_test2500" --test-queries 2500 --only-test
+python -m ecomq.data.prepare_esci --out-dir "$DATA_ROOT/esci_tune" --tune-queries 1500 --only-tune \
+  --tune-exclude "$DATA_ROOT/e2_rebal/splits/train.jsonl"
+python -m ecomq.data.audit_n1 --data-root "$DATA_ROOT" --output "$DATA_ROOT/data_manifest.json"
+echo "prepare_data: $((SECONDS - START))s"

@@ -1,0 +1,31 @@
+#!/bin/bash
+# NSCC ASPIRE2A（PBS）训练作业，对应 scripts/slurm/train.sbatch。
+#   scripts/pbs/submit.sh train CONFIG=configs/sft/e2_relevance_qlora_1ep_best.yaml MODEL=Qwen2.5-7B-Instruct RUN=<名字> DATASET_DIR=<目录>
+# TRAIN_OVERRIDES="seed=43 lora_rank=8"：追加覆盖配置项（空格分隔），从提交时的环境继承。
+# 换数据集：DATASET_DIR=<含 dataset_info.json 的目录>，默认 $DATA_ROOT/e1_relevance/llamafactory。
+# 时限 2 小时以内的 GPU 作业进 gdev 队列（每人可同时运行多个）；更长的用 qsub -l walltime=... 覆盖，会进 g1（每人同时只运行 1 个）。
+# 超时后用相同的 RUN 重新提交，会从最新 checkpoint 续训。
+#PBS -N ecomq-train
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o logs/
+set -eo pipefail
+source "${PBS_O_WORKDIR:?}/scripts/pbs/common.sh"
+: "${CONFIG:?}"; : "${MODEL:?}"; : "${RUN:?}"
+
+nvidia-smi --query-gpu=name,memory.total --format=csv
+# 每 15 秒记录一次显存占用（A100 只有 40GB，比 CCDS 的 L40S 少 6GB）
+nvidia-smi --query-gpu=timestamp,memory.used,utilization.gpu --format=csv -l 15 \
+  > "logs/gpu_mem_${PBS_JOBID%%.*}.csv" &
+GPU_LOGGER=$!
+trap 'kill $GPU_LOGGER 2>/dev/null || true' EXIT
+
+START=$SECONDS
+llamafactory-cli train "$CONFIG" \
+  model_name_or_path="$MODEL_ROOT/$MODEL" \
+  dataset_dir="${DATASET_DIR:-$DATA_ROOT/e1_relevance/llamafactory}" \
+  output_dir="$OUTPUT_ROOT/$RUN" \
+  ${TRAIN_OVERRIDES:-}
+echo "train: $((SECONDS - START))s"

@@ -1,0 +1,32 @@
+#!/bin/bash
+# 在计算节点上验证环境（几分钟）：GPU 型号与驱动、PyTorch 能否用 CUDA、bf16、bitsandbytes 4bit、计算节点外网。
+#   qsub -P <项目号> scripts/pbs/gpu_check.pbs      （或用 scripts/pbs/submit.sh gpu_check）
+# GPU 作业的 CPU 与内存按固定比例分配：每张 GPU 配 16 核、110GB。
+#PBS -N ecomq-gpucheck
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=00:10:00
+#PBS -j oe
+#PBS -o logs/
+set -eo pipefail
+source "${PBS_O_WORKDIR:?}/scripts/pbs/common.sh"
+
+nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv
+python - <<'PY'
+import torch
+print("torch", torch.__version__, "| built with CUDA", torch.version.cuda)
+print("cuda available:", torch.cuda.is_available())
+print("device:", torch.cuda.get_device_name(0))
+print("bf16 supported:", torch.cuda.is_bf16_supported())
+x = torch.randn(1024, 1024, device="cuda", dtype=torch.bfloat16)
+print("bf16 matmul ok:", (x @ x).shape)
+import bitsandbytes as bnb
+lin = bnb.nn.Linear4bit(256, 256, compute_dtype=torch.bfloat16, quant_type="nf4").cuda()
+y = lin(torch.randn(4, 256, device="cuda", dtype=torch.bfloat16))
+print("bitsandbytes", bnb.__version__, "4bit forward ok:", tuple(y.shape))
+import transformers, peft
+print("transformers", transformers.__version__, "| peft", peft.__version__)
+PY
+llamafactory-cli version 2>/dev/null | grep -i -m1 version || true
+# 计算节点是否有外网（没有也不影响：模型和数据都提前下载）
+curl -s -o /dev/null -m 8 -w "internet from compute node: http %{http_code}\n" https://huggingface.co || echo "internet from compute node: no"

@@ -1,4 +1,4 @@
-# 被 chain.sh、run_d2.sh、run_d_rest.sh source。
+# 被 chain.sh、run_d2.sh、run_d_rest.sh、run_e2a_dq.sh source。
 # sbatch_retry <sbatch 参数...>：提交作业并打印作业号。碰到每人同时提交上限（QOSMaxSubmitJobPerUserLimit，
 # 例如用户自己另外提交了作业，占了第 2 个名额）就每 2 分钟重试一次；其他错误照常失败（见 DEVLOG P20）。
 sbatch_retry() {

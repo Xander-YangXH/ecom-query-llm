@@ -1,8 +1,8 @@
 # ecom-query-llm
 
-电商搜索相关性判断的大模型微调：在 Amazon ESCI 数据集上，用 QLoRA 在单卡 L40S 上微调 Qwen2.5-7B-Instruct，判断 query 与商品之间的关系（exact / substitute / complement / irrelevant 四分类），并系统地检查每一项改进在统计上和标注噪声面前是否站得住。
+电商搜索相关性判断的大模型微调：在 Amazon ESCI 数据集上，用 QLoRA 微调 Qwen2.5-7B/14B-Instruct，判断 query 与商品之间的关系（exact / substitute / complement / irrelevant 四分类），并系统地检查每一项改进在统计上和标注噪声面前是否站得住。7B 主线实验运行于单卡 L40S；N1 的 14B 三种子实验运行于单卡 RTX 5090 32 GB。
 
-每一步的动机、做法、结果和遇到的问题都记录在 [docs/DEVLOG.md](docs/DEVLOG.md)（S0–S24，问题索引 P1–P18）。
+每一步的动机、做法、结果和遇到的问题都记录在 [docs/DEVLOG.md](docs/DEVLOG.md)；N1 的运行方法和结果分别见 [AutoDL 指南](docs/N1_AUTODL_GUIDE.md)与 [N1 结果说明](reports/n1/README.md)。完整的课程报告（全部实验结果、结论与局限）见 [REPORT.md](REPORT.md)。
 
 ## 任务
 
@@ -30,6 +30,20 @@
 - **D1–D5（S26）**：微调后 MMLU 没有净变化（0.735 → 0.735）；LoRA 默认设定（r=16，全部线性层）合适，只训练 q、v 稳定变差 3.2 个百分点；蒸馏到 3B（人工标签）宏 F1 0.517，配合 vLLM 与“只看第一个不同 token”的打分每秒 399 条，是教师现行打分的 47 倍；中文 Multi-CPR 重排 MRR@10 从零样本 0.256 提高到 0.346；意图 / 属性 / 改写多任务在 7B 自标注下没有带来提升。
 - **标注审计**：E↔S 之间约 6.8% 的测试样本标注有争议（S17）；complement / irrelevant 方面，盲评估计约 4% 的测试样本粗粒度标注（相关 / 搭配 / 无关）有误，其中标注为 irrelevant 的样本约四分之一更像是相关的（S24）。两项都是 Claude 的盲评，人工复核表在 `analysis/`。
 
+### N1：14B 容量实验
+
+N1 仅把 E2a 的基座替换为 Qwen2.5-14B-Instruct，并尽量冻结数据、prompt、QLoRA 超参数、有效 batch 和评估方法。三个正式种子的 test prior-adjusted Macro F1 为 **0.564195、0.564639、0.561737**，平均 **0.563523**，范围 **0.561737–0.564639**。
+
+E2a 的三个 adapter 已在 CCDS 上按 N1 相同的协议（NF4、bf16 compute、double quantization）重新打分（DEVLOG S27 结果）。double quantization 对 7B 本身几乎没有影响（三种子平均 0.5479 → 0.5478）。同一协议下：
+
+| 指标（加先验调整） | 7B E2a-dq 范围 | 14B N1 范围 | 平均差 |
+| --- | --- | --- | ---: |
+| full 宏 F1 | [0.5443, 0.5523] | [0.5617, 0.5646] | +1.57 |
+| merged 宏 F1 | [0.5774, 0.5907] | [0.6041, 0.6063] | +2.13 |
+| accuracy | [0.7288, 0.7307] | [0.7330, 0.7491] | +1.18 |
+
+三项的种子范围都不重叠，按预注册标准算稳定提升，主要来自 complement（F1 +5 点）。不加偏置（raw）时两组范围重叠。N1 只交回了汇总报告、没有逐条打分，因此这一对比没有 clean 口径、bootstrap 置信区间和排序指标，结论只覆盖上表三项。详细指标、实验偏差和文件导航见 [`reports/n1/README.md`](reports/n1/README.md)。
+
 ## 方法要点
 
 - **训练**：LLaMA-Factory 0.9.5，QLoRA（4bit NF4，r=16，alpha=32，全部线性层，可训练参数 0.53%），只对回复计损失；训练与推理的提示词由同一个函数生成，并有单测锁定（P1）。
@@ -43,7 +57,6 @@
 
 ```
 configs/sft/          LLaMA-Factory 配置：e2_relevance_qlora_1ep_best.yaml 为默认（E2a），e9a_* 为推理格式
-configs/ds/           DeepSpeed ZeRO-2 / ZeRO-3（NSCC 多卡用）
 src/ecomq/schema.py   标签、指令、输出格式与解析、校验
 src/ecomq/data/       prepare_esci（抽样与划分）、enrich_esci（商品附加字段）、build_e7 / build_e9（各实验的数据）、
                       make_rationales（推理理由）、to_alpaca（转 LLaMA-Factory 格式）
@@ -51,15 +64,21 @@ src/ecomq/eval/       score_labels（标签打分）、score_labels_cot、prior_
                       noise_aware、ranking、metrics、generate_hf
 src/ecomq/analysis/   es_audit（标注审计：抽样、生成 Excel 盲评表、评分）
 scripts/slurm/        CCDS 作业脚本与各实验的调度脚本（run_e*.sh）
-scripts/pbs/          NSCC 作业脚本（占位，尚未适配，见 docs/NSCC_PLAN.md）
+scripts/autodl/       N1 单卡 AutoDL：环境检查、数据审计、模型下载、smoke/N0 gate、三种子训练与统一评估
 scripts/              环境安装、模型与数据下载、代码同步（remote.sh）、本地分析缓存（local_cache.sh）、提交前检查（check_leaks.sh）
 analysis/             es_audit（E↔S）、ci_audit（complement / irrelevant）两份盲评材料
 reports/              各实验的指标与对比 JSON（小文件，进 git）
-docs/                 DEVLOG（技术日志）、LABELS（标签说明）、WORKFLOW（工作流）、NSCC_PLAN（下一阶段计划）、TEAM_TODO（组员待办与 NSCC 上手）
-tests/                单测（57 个）
+reports/n1/           N1 三种子结果、训练摘要、数据/模型 provenance 与组员阅读入口
+docs/                 DEVLOG、LABELS、WORKFLOW、N1 AutoDL 指南
+demo/                 前端演示（静态网页与数据，build_data.py 生成数据）
+REPORT.md             课程报告：全部实验结果、结论与局限
+PRESENTATION.md       15–20 分钟展示的 PPT 要点建议
+EXPERIMENT_RESULTS.md 组员的 N0 / N2 实验结果
+B3_RESULTS.md, B3/    组员的 B1–B3 人工复核结果与评分文件
+tests/                单测（当前 72 个）
 ```
 
-数据、模型和训练产出只放在服务器上，路径通过 `.env` 配置（见 `.env.ccds.example`），不进 git。
+数据、模型和训练产出只放在服务器上，路径通过 `.env` 配置（CCDS 见 `.env.ccds.example`，AutoDL/N1 见 `.env.autodl.example`），不进 git。
 
 ## 复现
 
@@ -84,9 +103,15 @@ CCDS（SLURM）上的主结果，按顺序在登录节点用 `setsid nohup` 运�
 
 本地分析：`REMOTE_HOST=<user>@<host> bash scripts/local_cache.sh e2a` 会拉取打分并重新生成先验调整的预测与报告（应与 `reports/` 中已提交的报告一致）；之后用 `ecomq.eval.compare`、`noise_aware`、`ranking` 做对比。每个实验的具体命令见 DEVLOG 对应章节。
 
-## 下一阶段
+### N1 / AutoDL
 
-CCDS 单卡上能回答的问题已基本做完。下一阶段在 NSCC 多卡上检验模型容量（14B）与训练方式（全参数微调）是不是瓶颈，计划与需要先核对的事项见 [docs/NSCC_PLAN.md](docs/NSCC_PLAN.md)。
+N1 的完整命令、断点续跑规则和门禁条件见 [`docs/N1_AUTODL_GUIDE.md`](docs/N1_AUTODL_GUIDE.md)。如果只需了解已经得到的结果，从 [`reports/n1/README.md`](reports/n1/README.md) 开始；机器可读指标和 provenance 均在同一目录。
+
+E2a 三个 adapter（`e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44`）在 CCDS 上的统一协议重打分用 `bash scripts/slurm/run_e2a_dq.sh`（`label_scores.sbatch` 的 `DOUBLE_QUANT=1`）；在 AutoDL 上对应 `scripts/autodl/rescore_e2a_for_n1.sh`。结果报告为 `reports/n1/e2a-dq-seed*-prior.json`。
+
+## 项目状态
+
+已结项（2026-11-13）。CCDS 单卡 7B 主线（E1–E10、D1–D5、N0/N2）和 AutoDL 单卡 14B（N1）全部完成并写入 DEVLOG；不再安排后续实验。完整的课程报告见 [REPORT.md](REPORT.md)，展示要点见 [PRESENTATION.md](PRESENTATION.md)，前端演示在 `demo/`（`cd demo && python3 -m http.server 8000`，再打开 http://localhost:8000）。
 
 ## 数据说明
 

@@ -1,0 +1,85 @@
+{
+  "C2R": {
+    "agree_gold": 15,
+    "n": 30,
+    "agree_model": 7,
+    "other": 4,
+    "uncertain": 4,
+    "agree_gold_rate": 0.5,
+    "agree_model_rate": 0.2333,
+    "other_rate": 0.1333,
+    "uncertain_rate": 0.1333
+  },
+  "CI": {
+    "agree_model": 11,
+    "n": 20,
+    "agree_gold": 7,
+    "uncertain": 2,
+    "agree_gold_rate": 0.35,
+    "agree_model_rate": 0.55,
+    "other_rate": 0.0,
+    "uncertain_rate": 0.1
+  },
+  "I2R": {
+    "agree_model": 15,
+    "n": 30,
+    "agree_gold": 11,
+    "uncertain": 2,
+    "other": 2,
+    "agree_gold_rate": 0.3667,
+    "agree_model_rate": 0.5,
+    "other_rate": 0.0667,
+    "uncertain_rate": 0.0667
+  },
+  "R2I": {
+    "agree_gold": 4,
+    "n": 30,
+    "other": 2,
+    "agree_model": 19,
+    "uncertain": 5,
+    "agree_gold_rate": 0.1333,
+    "agree_model_rate": 0.6333,
+    "other_rate": 0.0667,
+    "uncertain_rate": 0.1667
+  },
+  "control_C": {
+    "agree_gold": 10,
+    "n": 10,
+    "agree_gold_rate": 1.0,
+    "agree_model_rate": 0.0,
+    "other_rate": 0.0,
+    "uncertain_rate": 0.0
+  },
+  "control_I": {
+    "agree_gold": 9,
+    "n": 10,
+    "uncertain": 1,
+    "agree_gold_rate": 0.9,
+    "agree_model_rate": 0.0,
+    "other_rate": 0.0,
+    "uncertain_rate": 0.1
+  },
+  "summary": {
+    "control_disagree_with_gold": 0.05,
+    "C2R": {
+      "disagree_with_gold": 0.5,
+      "excess_disagreement": 0.45,
+      "agree_with_model": 0.2333
+    },
+    "I2R": {
+      "disagree_with_gold": 0.6333,
+      "excess_disagreement": 0.5833,
+      "agree_with_model": 0.5
+    },
+    "R2I": {
+      "disagree_with_gold": 0.8667,
+      "excess_disagreement": 0.8167,
+      "agree_with_model": 0.6333
+    },
+    "CI": {
+      "disagree_with_gold": 0.65,
+      "excess_disagreement": 0.6,
+      "agree_with_model": 0.55
+    }
+  }
+}

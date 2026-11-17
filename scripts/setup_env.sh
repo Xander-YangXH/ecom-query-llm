@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 在远端登录节点运行一次：创建 venv、安装依赖。
-# 先按 NSCC 文档 module load 合适的 python / cuda，再执行本脚本。
+# 通用 venv 安装脚本（不用 conda 的机器）。先加载合适的 python / cuda，再执行本脚本。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

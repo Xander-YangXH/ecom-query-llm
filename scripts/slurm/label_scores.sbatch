@@ -3,6 +3,7 @@
 #   sbatch --export=ALL,MODEL=Qwen2.5-7B-Instruct,RUN=e2a-1ep-best,TEST=<jsonl>,NAME=<结果名>,LOAD_4BIT=1 scripts/slurm/label_scores.sbatch
 # 输出：$OUTPUT_ROOT/label_scores/$NAME.jsonl
 # RUN 留空：不加载适配器，直接给基座打分（零样本基线）。TASK=relevance_zh：中文二分类（D5）。
+# DOUBLE_QUANT=1（需同时 LOAD_4BIT=1）：4bit NF4 加 double quantization，与 N1 的打分协议一致（S27）。
 # COT=1：relevance_cot 模型（E9a），先生成理由再以理由为条件打分（ecomq.eval.score_labels_cot）；
 #   生成较慢，提交时用 --time=03:00:00 覆盖默认时限。
 #SBATCH --partition=MGPU-TC2
@@ -32,6 +33,7 @@ ARGS=(--model "$MODEL_ROOT/$MODEL" --test "$TEST"
 [ -n "${RUN:-}" ] && ARGS+=(--lora "$OUTPUT_ROOT/$RUN")
 [ -n "${TASK:-}" ] && ARGS+=(--task "$TASK")
 [ -n "${LOAD_4BIT:-}" ] && ARGS+=(--load-4bit)
+[ -n "${DOUBLE_QUANT:-}" ] && ARGS+=(--double-quant)
 START=$SECONDS
 if [ -n "${COT:-}" ]; then
   PYTHONPATH=src python -m ecomq.eval.score_labels_cot "${ARGS[@]}" --max-new-tokens "${MAX_NEW_TOKENS:-96}"

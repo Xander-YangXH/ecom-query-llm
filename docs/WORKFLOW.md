@@ -1,23 +1,22 @@
-# 本地 ↔ GitHub ↔ 两个集群的工作流
+# 本地 ↔ GitHub ↔ 远端算力的工作流
 
-两个集群分工：**CCDS 用来免费做单卡冒烟与小规模测试，通过后再到 NSCC 跑完整实验。**
+本项目实际用到两套算力：**7B 主线全部在 NTU CCDS 集群的单卡 L40S 上完成；14B 的 N1 实验由组员在 AutoDL 单卡 RTX 5090 上完成**（见 `N1_AUTODL_GUIDE.md`）。
 原则不变：**代码进 git，数据/模型/产出只放远端，指标小文件按需回传。**
 
-| | CCDS GPU Cluster TC2 | NSCC |
+| | CCDS GPU Cluster TC2 | AutoDL（N1） |
 |---|---|---|
-| 用途 | 单卡冒烟、QLoRA/LoRA 小规模验证 | 完整实验：多卡、全参数、DPO/GRPO、14B 复验 |
-| 调度器 | SLURM（`sbatch`） | PBS（`qsub`） |
-| GPU | 单卡 L40S（48GB） | 多卡（型号与数量以 NSCC 实际分配为准） |
-| 访问 | 仅 NTU 校网或 NTU VPN；账号为 NTU 账号 | 以 NSCC 文档为准 |
-| 限制（指南示例值，以 `mytcinfo` 为准） | 1 GPU、10 CPU、30GB 内存、同时 2 个作业、单作业约 6 小时、家目录约 100GB | 以项目配额为准 |
-| 环境 | conda（`scripts/setup_env_ccds.sh`） | venv（`scripts/setup_env.sh`） |
-| 作业脚本 | `scripts/slurm/*.sbatch` | `scripts/pbs/*.pbs` |
-| `.env` 模板 | `.env.ccds.example` | `.env.nscc.example` |
+| 用途 | E1–E10、D1–D5、N0/N2 等全部 7B 实验 | N1：14B QLoRA 三个种子 |
+| 调度器 | SLURM（`sbatch`） | 无，单机直接运行 |
+| GPU | 单卡 L40S（48GB） | 单卡 RTX 5090（32GB） |
+| 访问 | 仅 NTU 校网或 NTU VPN；账号为 NTU 账号 | AutoDL 控制台 |
+| 限制（指南示例值，以 `mytcinfo` 为准） | 1 GPU、10 CPU、30GB 内存、同时 2 个作业、单作业约 6 小时、家目录约 100GB | 按租用实例 |
+| 环境 | conda（`scripts/setup_env_ccds.sh`） | `scripts/autodl/` |
+| 作业脚本 | `scripts/slurm/*.sbatch` | `scripts/autodl/*.sh` |
+| `.env` 模板 | `.env.ccds.example` | `.env.autodl.example` |
 
 ```
-本地(写代码、跑单测) --git push--> GitHub --git pull--> CCDS(冒烟/小测)
-                                          └--git pull--> NSCC(完整实验)
-                     reports/*.json  <-- git 或 rsync --  两个集群
+本地(写代码、跑单测) --git push--> GitHub --git pull--> CCDS / AutoDL
+                     reports/*.json  <-- git 或 rsync --  远端
 ```
 
 | 内容 | 位置 | 是否进 git |
@@ -92,40 +91,21 @@ sbatch --export=ALL,CONFIG=configs/sft/qwen7b_qlora_r16.yaml,MODEL=Qwen2.5-7B-In
 
 - 单作业约 6 小时，到点后用**同样的命令**重新提交即可续训。
 - 同时运行的作业数和资源总和都有上限，超限会一直 PENDING；排队多时先别重复提交。
-- 7B 全参数、DeepSpeed、14B、vLLM 都不要放在 CCDS，留给 NSCC。
+- 7B 全参数、多卡 DeepSpeed 不适合在 CCDS 单卡上做；本项目没有做这两项。
 - 注意家目录配额：`save_total_limit` 已设为 2，定期用 `ncdu` 检查。
 
-## 4. 迁移到 NSCC
-
-> 2026-10-27：下一阶段要做的实验、`scripts/pbs/` 需要改的地方和迁移检查表见 [NSCC_PLAN.md](NSCC_PLAN.md)。下面是项目初期写的通用步骤，PBS 脚本目前仍是占位。
-
-CCDS 冒烟通过、配置稳定后再迁移：
-
-1. 在 NSCC 上 clone 仓库，`cp .env.nscc.example .env`，运行 `bash scripts/setup_env.sh`。
-2. 按 NSCC 文档修改 `scripts/pbs/*.pbs` 里的项目号、队列和 `select=` 资源写法。
-3. 多卡 LoRA：`qsub -v CONFIG=configs/sft/qwen7b_lora_r16.yaml,MODEL=...,RUN=...,DS=configs/ds/ds_z2.json scripts/pbs/train.pbs`；全参数：`CONFIG=configs/sft/qwen7b_full.yaml` 并设 `DS=configs/ds/ds_z3.json`。
-4. 评测用 `scripts/pbs/eval.pbs`（vLLM 版）。
-
-迁移检查表：
-
-- [ ] 数据格式、提示词模板在 CCDS 上已验证一致（`tests/test_smoke.py` 里有训练与推理提示词一致性测试）
-- [ ] 在 CCDS 上记录的显存与耗时，作为 NSCC 申请资源的依据
-- [ ] 基座模型版本、LLaMA-Factory 版本已用 `pip freeze` 锁定，两边一致
-- [ ] 路径全部来自 `.env`，没有硬编码
-
-## 5. 数据流
+## 4. 数据流
 
 1. **合成**：`ecomq.data.synth` 需要外网调用强模型，建议在你自己的电脑上运行，产出 `synth.jsonl` 后用 `scripts/remote.sh put` 传到远端 `$DATA_ROOT/raw/`。
 2. **处理**：在远端（或本地）运行 `bash scripts/prepare_data.sh`：校验去重 → 分组划分 → 转 Alpaca 格式。
 3. **训练 / 评测**：见上面各节，产出写入 `$OUTPUT_ROOT`，指标 JSON 写到仓库 `reports/`。
 4. **回传指标**：在远端 `git add reports && git commit && git push`，或在本地 `scripts/remote.sh get-reports`。
 
-## 6. 需要你自己核对的地方
+## 5. 需要你自己核对的地方
 
-我没有核对两个集群的实时配置，下面这些在脚本里是占位或假设：
+下面这些在脚本里是占位或假设，换机器复现时请先核对：
 
 - CCDS：`--partition`、`--qos`、`--mem`、`--time` 来自指南的示例值；实际数值用 `mytcinfo` 或 `sacctmgr` 确认。
 - CCDS：计算节点是否有外网、PyTorch wheel 的 CUDA 版本是否与节点驱动兼容（脚本里写的是 cu128，请先核对）。
 - CCDS：指南说明资源仅限学术用途，请确认你的使用方式在允许范围内。
-- NSCC：PBS 头部的项目号、队列、`select=` 写法，登录主机，存储路径与配额，计算节点外网策略。
 - 两边：LLaMA-Factory 的参数名随版本会变（例如量化、续训行为），首次运行请在日志里确认。

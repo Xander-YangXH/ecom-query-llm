@@ -2,6 +2,7 @@
 # 计算 relevance 四个候选标签的对数概率，对应 scripts/slurm/label_scores.sbatch。
 #   scripts/pbs/submit.sh label_scores MODEL=Qwen2.5-7B-Instruct RUN=<适配器> TEST=<jsonl> NAME=<结果名> LOAD_4BIT=1
 # 输出：$OUTPUT_ROOT/label_scores/$NAME.jsonl。RUN 留空：给基座打分。DOUBLE_QUANT=1：与 N1 的打分协议一致（S27）。
+# MODEL_PATH=<完整模型目录>：给全参数微调的模型打分（N3），这时不需要 MODEL 和 RUN。
 #PBS -N ecomq-lblscore
 #PBS -q normal
 #PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
@@ -10,9 +11,10 @@
 #PBS -o logs/
 set -eo pipefail
 source "${PBS_O_WORKDIR:?}/scripts/pbs/common.sh"
-: "${MODEL:?}"; : "${TEST:?}"; : "${NAME:?}"
+: "${TEST:?}"; : "${NAME:?}"
+[ -n "${MODEL_PATH:-}" ] || : "${MODEL:?需要 MODEL 或 MODEL_PATH}"
 
-ARGS=(--model "$MODEL_ROOT/$MODEL" --test "$TEST"
+ARGS=(--model "${MODEL_PATH:-$MODEL_ROOT/$MODEL}" --test "$TEST"
       --output "$OUTPUT_ROOT/label_scores/$NAME.jsonl" --batch-size "${BATCH_SIZE:-32}")
 [ -n "${RUN:-}" ] && ARGS+=(--lora "$OUTPUT_ROOT/$RUN")
 [ -n "${TASK:-}" ] && ARGS+=(--task "$TASK")

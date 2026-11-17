@@ -1,0 +1,40 @@
+# N3：7B 全参数微调（DEVLOG S32）。数据、模板、截断长度、轮数、全局 batch、评测与 checkpoint 选择都与 E2a 相同，
+# 只把 QLoRA（4bit + LoRA r16）换成全参数 bf16 训练，学习率比 LoRA 低一个数量级（扫 5e-6 / 1e-5 / 2e-5）。
+# 只能在多卡上跑：4 × A100 40GB + DeepSpeed ZeRO-3（scripts/pbs/train_full.pbs）。
+# 全局 batch = 4 卡 × 8 × 累积 1 = 32，与 E2a（1 卡 × 16 × 累积 2）相同，所以总步数同为 625。
+model_name_or_path: Qwen/Qwen2.5-7B-Instruct
+stage: sft
+do_train: true
+finetuning_type: full
+deepspeed: configs/ds/ds_z3.json
+
+dataset: esci_rel_train
+eval_dataset: esci_rel_val
+template: qwen
+cutoff_len: 384
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+output_dir: saves/n3
+logging_steps: 10
+plot_loss: true
+
+per_device_train_batch_size: 8
+gradient_accumulation_steps: 1
+learning_rate: 1.0e-5
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
+ddp_timeout: 180000000
+
+per_device_eval_batch_size: 8
+eval_strategy: steps
+eval_steps: 100
+save_strategy: steps
+save_steps: 100
+save_total_limit: 2
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+report_to: none

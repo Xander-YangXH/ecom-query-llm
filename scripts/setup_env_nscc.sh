@@ -29,6 +29,15 @@ pip install --no-cache-dir -r "$LOCK" --extra-index-url https://download.pytorch
 rm -f "$LOCK"
 pip install --no-cache-dir --no-deps -e .
 
+# 多卡全参数微调（N3）用 DeepSpeed。安装时要能找到 nvcc（默认 PATH 里没有），用 .env 里的 CUDA_HOME；
+# DS_BUILD_OPS=0 不预编译 CUDA 算子；-c 锁住 torch 等版本，避免被顺带升级。
+if [ -n "${CUDA_HOME:-}" ]; then
+  CONS=$(mktemp)
+  pip freeze | grep -iE '^(torch|torchvision|torchaudio|transformers|accelerate|numpy|pydantic)==' > "$CONS"
+  PATH="$CUDA_HOME/bin:$PATH" DS_BUILD_OPS=0 pip install --no-cache-dir --no-build-isolation -c "$CONS" deepspeed==0.20.0
+  rm -f "$CONS"
+fi
+
 python - <<'PY'
 import torch, transformers, peft, bitsandbytes
 print("torch", torch.__version__, "| transformers", transformers.__version__,

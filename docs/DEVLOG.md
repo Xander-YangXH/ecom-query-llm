@@ -2063,3 +2063,54 @@
 - S28 中写的“根目录 README”“根目录 `PRESENTATION.md`”指课程仓库的布局；在本仓库中分别对应 `REPORT.md` 和根目录的 `PRESENTATION.md`。
 
 **核对**：单测 72 个通过；`check_leaks.sh` 通过；全部 Markdown 的相对链接都能找到对应文件。
+
+## S30 · NSCC ASPIRE2A 上手：环境、PBS 脚本与 E2a seed 42 复现（2026-11-17）
+
+**为什么**：仓库所有者拿到了 NSCC ASPIRE2A 的账号，之后的实验放到 NSCC 上跑。在做任何新实验之前，先确认 NSCC 上的环境、数据和训练流程能复现 CCDS 的结果，否则之后两边的数字不能直接比较。
+
+**账号与集群**（登录节点上 `myprojects`、`myquota`、`qstat -Qf` 查得）
+
+- 个人项目，余额约 9.9 万 SU；GPU 每小时 64 SU，即约 1,500 个 A100 GPU 小时。
+- GPU 节点是 A100-SXM4-40GB（驱动 570，CUDA 12.8）。每张 GPU 固定配 16 核和 110GB 内存。
+- 队列：时限 2 小时以内的 GPU 作业进 `gdev`（每人可同时运行多个）；2–24 小时按 GPU 数进 `g1`–`g4`（每人每个队列同时只运行 1 个）；更长的进 `glong`（最长 120 小时）。
+- 家目录 50GB，个人 scratch 100TB；数据、模型、产出和 conda 环境都放 `~/scratch/ecomq`。
+- 登录节点和计算节点都能访问外网（Hugging Face、GitHub、PyPI）。作业里仍设为离线，模型和数据都在登录节点提前下载。
+- 登录节点只接受密码登录，不接受公钥。
+
+**新增脚本**
+
+- `.env.nscc.example`：路径都在 scratch 下；项目号写在 `.env` 的 `NSCC_PROJECT`，不进 git。
+- `scripts/setup_env_nscc.sh`：在 `$ENV_PREFIX` 建 conda 环境，依赖直接用 CCDS 的 `requirements-lock-ccds.txt`。两边的 torch 2.11.0+cu128、transformers 5.6.0、peft 0.18.1、bitsandbytes 0.50.2、LLaMA-Factory 0.9.5 完全相同。安装约 22 分钟，环境 8.2GB。
+- `scripts/pbs/`：`common.sh`（进入目录、读 `.env`、把环境放到 PATH 最前，不依赖 `conda activate`）、`gpu_check.pbs`、`prepare_data.pbs`、`train.pbs`、`label_scores.pbs`；`submit.sh` 包装 `qsub`（自动加 `-P` 项目号，`AFTER=` 用 `-W depend=afterok` 串联作业）；`run_n0.sh` 一次提交“训练 → 调参集打分 + 测试集打分”三个作业，提交完即可退出登录。
+- `download_model.sh` 支持 `ENV_PREFIX`；`local_cache.sh` 增加 `REMOTE_ROOT`（NSCC 为 `scratch/ecomq`）和 `SSH_OPTS`。
+
+**数据核对**：`prepare_data.pbs` 在 NSCC 上从 ESCI 原始文件重新生成训练、验证、调参、测试四份数据，并用 `audit_n1` 写出 sha256。四份数据和三个原始文件的 sha256 都与 CCDS（`reports/n1/data-manifest.json`）**完全相同**，所以两边只差硬件。
+
+**E2a seed 42 复现**（配置 `e2_relevance_qlora_1ep_best.yaml` 不改，batch 16 × 累积 2；打分 4bit，不开 double quantization，与原 E2a 相同）
+
+| 项目 | CCDS（L40S 48GB，原 E2a） | NSCC（A100 40GB） |
+| --- | --- | --- |
+| 训练时间（纯训练） | 约 32 分钟 | 26.5 分钟（作业 31.8 分钟） |
+| 显存峰值 | 32,645 MiB | 32,645 MiB |
+| 最优 checkpoint / eval_loss | — | 625 / 0.0622 |
+| 打分时间（调参集 / 测试集） | 约 12 / 20 分钟 | 8.8 / 14.8 分钟 |
+| raw 准确率 / 宏 F1 | 0.7397 / 0.5343 | 0.7376 / 0.5289 |
+| 先验调整后的偏置（S, C, I） | 0.50 / 0.50 / 0.75 | 0.50 / 1.25 / 1.00 |
+| 先验调整后准确率 / 宏 F1 | 0.7300 / 0.5493 | 0.7251 / **0.5568** |
+| merged 宏 F1（先验调整后） | 0.5858 | 0.5967 |
+
+- 两边对测试集的预测一致率：raw 97.9%，先验调整后 96.5%。4 个标签对数概率的差，中位数 0.076，95% 分位 0.27。
+- raw 宏 F1 0.5289 落在 CCDS 三个种子的 raw 范围 [0.5205, 0.5343] 内。
+- 先验调整后的宏 F1 0.5568 比 CCDS 三个种子的范围 [0.5405, 0.5538] 的上限高 0.3 个百分点。差别几乎全部来自 complement：调参集上选出的 complement 偏置是 1.25（CCDS 为 0.5），测试集 complement F1 从 0.327 变为 0.375，其余三类相差不到 1 个百分点。complement 在测试集只有 259 条，这一类的 F1 对偏置网格上一格的变化很敏感（S12、S20 已经看到过）。
+- 组员的 N0 在 CCDS 上复现时结果与原来逐位一致（0.5493），说明同一硬件上训练是确定的；换成 A100 后，GPU 内核的数值差异让适配器略有不同，效果相当于换了一个随机种子。
+
+**结论**
+
+- NSCC 的环境、数据和流程可用：数据逐字节一致，训练和打分正常完成，raw 指标在种子范围内，先验调整后的结果与 7B 的种子波动是同一量级。
+- **以后 NSCC 上的新实验，要和 NSCC 上跑的对照组比较**，不要直接和 CCDS 的数字比：换硬件带来的变化（这里 +0.75 个百分点）和种子之间的差别一样大。需要和 7B 基线比较时，在 NSCC 上补跑 E2a 的 seed 43、44（每个约 1 GPU 小时）。
+- 本次三个 GPU 作业共用约 0.92 GPU 小时（约 59 SU）。
+
+**问题**
+
+- 登录节点不接受公钥，只能用密码登录；Claude 不代输密码，所以由用户在终端里开一个持久的 SSH 主连接（`ssh -M -S <socket> -o ControlPersist=8h ...`），Claude 复用这个连接执行命令。
+- `qsub -o logs/` 写出的日志文件名是 `<作业号>.OU`，不带作业名；查看日志时按作业号找。

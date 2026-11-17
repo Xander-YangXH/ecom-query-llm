@@ -113,6 +113,22 @@ E2a 三个 adapter（`e2a-1ep-best`、`e5-20k-s43`、`e5-20k-s44`）在 CCDS 上
 
 已结项（2026-11-13）。CCDS 单卡 7B 主线（E1–E10、D1–D5、N0/N2）和 AutoDL 单卡 14B（N1）全部完成并写入 DEVLOG；不再安排后续实验。完整的课程报告见 [REPORT.md](REPORT.md)，展示要点见 [PRESENTATION.md](PRESENTATION.md)，前端演示在 `demo/`（`cd demo && python3 -m http.server 8000`，再打开 http://localhost:8000）。
 
+
+### NSCC ASPIRE2A
+
+2026-11-17 起后续实验在 NSCC 上运行（DEVLOG S30）。环境、PBS 脚本和复现结果：
+
+```bash
+cp .env.nscc.example .env               # 填好 NSCC_PROJECT
+bash scripts/setup_env_nscc.sh          # 登录节点：conda 环境，版本与 CCDS 锁定文件一致
+bash scripts/download_model.sh Qwen/Qwen2.5-7B-Instruct
+ESCI_ONLY=1 RAW_DIR=$DATA_ROOT/raw bash scripts/download_data.sh
+scripts/pbs/submit.sh gpu_check
+scripts/pbs/submit.sh prepare_data      # 生成的数据 sha256 与 CCDS 完全相同
+bash scripts/pbs/run_n0.sh              # E2a seed 42：训练 → 调参集 / 测试集打分
+```
+
+在 NSCC 上复现 E2a seed 42：先验调整后宏 F1 0.5568（CCDS 0.5493），raw 0.5289（CCDS 0.5343），差别与种子之间的波动同一量级。NSCC 上的新实验应与 NSCC 上跑的对照组比较。报告见 `reports/nscc/`。
 ## 数据说明
 
 只使用公开的 ESCI 数据，不含任何真实线上日志。理由数据（E9）由开源模型生成，只用于实验。

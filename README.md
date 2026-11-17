@@ -126,9 +126,11 @@ ESCI_ONLY=1 RAW_DIR=$DATA_ROOT/raw bash scripts/download_data.sh
 scripts/pbs/submit.sh gpu_check
 scripts/pbs/submit.sh prepare_data      # 生成的数据 sha256 与 CCDS 完全相同
 bash scripts/pbs/run_n0.sh              # E2a seed 42：训练 → 调参集 / 测试集打分
+SEED=43 bash scripts/pbs/run_n0.sh      # 其他种子
 ```
 
-在 NSCC 上复现 E2a seed 42：先验调整后宏 F1 0.5568（CCDS 0.5493），raw 0.5289（CCDS 0.5343），差别与种子之间的波动同一量级。NSCC 上的新实验应与 NSCC 上跑的对照组比较。报告见 `reports/nscc/`。
+E2a 三个种子在 NSCC 上全部重跑（DEVLOG S30、S31）：先验调整后宏 F1 均值 0.5487，范围 [0.5372, 0.5568]；CCDS 为 0.5479，范围 [0.5405, 0.5538]。两边均值只差 0.08 个百分点，单个种子的差别与种子之间的波动同一量级。NSCC 上的新实验以这三个种子为 7B 对照组。报告见 `reports/nscc/`。
+
 ## 数据说明
 
 只使用公开的 ESCI 数据，不含任何真实线上日志。理由数据（E9）由开源模型生成，只用于实验。

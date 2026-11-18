@@ -2314,3 +2314,16 @@
 **用量**：3 个种子训练与打分约 6 GPU 小时（约 380 SU）。服务器上新增 3 个约 43GB 的产出目录，未清理。
 
 报告：`reports/s34-n3-pool-bagged.json`（主口径）、`reports/s34-n3-pool.json`（单次搜偏置），以及 `reports/n3/n3-full-lr5e-6-s{45,46,47}-prior.json`。
+
+## S35 · N5：14B QLoRA 在 NSCC 上重跑（对照组 + 集成，2026-11-18）
+
+**为什么**：N1（14B QLoRA）是组员在 AutoDL 的 RTX 5090 上跑的，只交回了汇总报告，没有逐条打分，所以不能和 NSCC 上的 7B 结果做配对比较，也不能做 14B 的集成、bagged 偏置和排序指标。S34 之后最需要回答的问题是：**14B 单模型、14B 集成，和 7B 全参数（N3）集成相比怎么样**。
+
+**设定**：`configs/sft/n5_qwen14b_qlora_4gpu.yaml`，训练设定与 N1 / E2a 相同（4bit NF4 + double quantization、r16 全部线性层、学习率 1e-4、1 个 epoch、全局 batch 32、按验证损失选 checkpoint）。只改并行方式：4 × A100 数据并行（每卡 4 × 累积 2），每个种子在 gdev 的 2 小时内完成；N1 是单卡、每卡 1 × 累积 32。打分协议与 NSCC 上的 E2a 对照组相同（4bit，不开 double quantization）。种子 42–47，共 6 个。`scripts/pbs/run_n5.sh` 提交。
+
+**预注册**（结果出来之前写下）
+
+1. 14B 三个种子（42–44）vs NSCC 上 E2a 三个种子（S31）：先验调整后 full 宏 F1 的种子范围不重叠才算稳定提升（bagged 偏置为主口径，单次搜偏置同时报告）。预期复现 N1 的结论。
+2. 14B 6 个种子的 20 种 3 种子集成 vs N3 的 20 种：同一规则（一方最小值 > 另一方最大值）。
+3. 14B 单模型（6 个种子）vs N3 3 种子集成（20 种）：报告两者的范围与两两胜率，不设判定，用于部署取舍（推理成本约 2 倍 vs 3 倍 7B）。
+4. 所有比较都同时报告 merged、clean、raw 和排序指标。

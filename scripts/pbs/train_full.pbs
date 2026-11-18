@@ -15,7 +15,7 @@ source "${PBS_O_WORKDIR:?}/scripts/pbs/common.sh"
 : "${CONFIG:?}"; : "${MODEL:?}"; : "${RUN:?}"
 
 nvidia-smi --query-gpu=index,name,memory.total --format=csv
-nvidia-smi topo -m | head -6
+nvidia-smi topo -m || true   # 不能接 | head：pipefail 下 head 提前关管道会让作业直接退出（S32）
 nvidia-smi --query-gpu=timestamp,index,memory.used,utilization.gpu --format=csv -l 15 \
   > "logs/gpu_mem_${PBS_JOBID%%.*}.csv" &
 GPU_LOGGER=$!

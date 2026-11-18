@@ -44,6 +44,16 @@ E2a 的三个 adapter 已在 CCDS 上按 N1 相同的协议（NF4、bf16 compute
 
 三项的种子范围都不重叠，按预注册标准算稳定提升，主要来自 complement（F1 +5 点）。不加偏置（raw）时两组范围重叠。N1 只交回了汇总报告、没有逐条打分，因此这一对比没有 clean 口径、bootstrap 置信区间和排序指标，结论只覆盖上表三项。详细指标、实验偏差和文件导航见 [`reports/n1/README.md`](reports/n1/README.md)。
 
+**N3：7B 全参数微调（NSCC，DEVLOG S32）。** 4 × A100 40GB + DeepSpeed ZeRO-3，数据、轮数、全局 batch 与 checkpoint 选择同 E2a，只把 QLoRA 换成全参数 bf16 训练。学习率在 seed 42 上扫 1e-6 到 2e-5 五档，按调参集选出 5e-6，再跑 seed 43、44。对照组是 NSCC 上的 E2a 三个种子（S31）：
+
+| 指标（加先验调整） | 7B QLoRA E2a（NSCC） | 7B 全参数 N3（lr 5e-6） | 平均差 |
+| --- | --- | --- | ---: |
+| full 宏 F1 | 0.5487 [0.5372, 0.5568] | 0.5524 [0.5481, 0.5569] | +0.37 |
+| merged 宏 F1 | 0.5871 [0.5724, 0.5967] | 0.5910 [0.5864, 0.5971] | +0.39 |
+| accuracy | 0.7284 [0.7251, 0.7340] | 0.7317 [0.7290, 0.7360] | +0.33 |
+
+三项的种子范围都重叠，按预注册标准**不是稳定提升**；全参数微调只让种子之间的波动变小。7B 全参数（训练全部 76 亿参数）仍低于 14B QLoRA（N1，[0.5617, 0.5646]），和 D2（LoRA 秩加到 64 无提升）、N2（bf16 LoRA 无稳定提升）一致：这个任务上 7B 的瓶颈不在可训练参数量，换更大的基座更有效。报告见 [`reports/n3/`](reports/n3/)。
+
 ## 方法要点
 
 - **训练**：LLaMA-Factory 0.9.5，QLoRA（4bit NF4，r=16，alpha=32，全部线性层，可训练参数 0.53%），只对回复计损失；训练与推理的提示词由同一个函数生成，并有单测锁定（P1）。
@@ -64,11 +74,14 @@ src/ecomq/eval/       score_labels（标签打分）、score_labels_cot、prior_
                       noise_aware、ranking、metrics、generate_hf
 src/ecomq/analysis/   es_audit（标注审计：抽样、生成 Excel 盲评表、评分）
 scripts/slurm/        CCDS 作业脚本与各实验的调度脚本（run_e*.sh）
+scripts/pbs/          NSCC ASPIRE2A 的 PBS 作业（单卡训练、4 卡全参数训练、打分）与 run_n0.sh / run_n3.sh
 scripts/autodl/       N1 单卡 AutoDL：环境检查、数据审计、模型下载、smoke/N0 gate、三种子训练与统一评估
 scripts/              环境安装、模型与数据下载、代码同步（remote.sh）、本地分析缓存（local_cache.sh）、提交前检查（check_leaks.sh）
 analysis/             es_audit（E↔S）、ci_audit（complement / irrelevant）两份盲评材料
 reports/              各实验的指标与对比 JSON（小文件，进 git）
 reports/n1/           N1 三种子结果、训练摘要、数据/模型 provenance 与组员阅读入口
+reports/nscc/         NSCC 上 E2a 三个种子（N0 复现 + 7B 对照组）
+reports/n3/           N3 7B 全参数微调：五档学习率（seed 42）与 lr 5e-6 的三个种子
 docs/                 DEVLOG、LABELS、WORKFLOW、N1 AutoDL 指南
 demo/                 前端演示（静态网页与数据，build_data.py 生成数据）
 REPORT.md             课程报告：全部实验结果、结论与局限
@@ -127,6 +140,7 @@ scripts/pbs/submit.sh gpu_check
 scripts/pbs/submit.sh prepare_data      # 生成的数据 sha256 与 CCDS 完全相同
 bash scripts/pbs/run_n0.sh              # E2a seed 42：训练 → 调参集 / 测试集打分
 SEED=43 bash scripts/pbs/run_n0.sh      # 其他种子
+LR=5e-6 SEED=42 bash scripts/pbs/run_n3.sh   # N3：4 卡全参数微调 → 打分（需要 .env 里的 CUDA_HOME 和 DeepSpeed）
 ```
 
 E2a 三个种子在 NSCC 上全部重跑（DEVLOG S30、S31）：先验调整后宏 F1 均值 0.5487，范围 [0.5372, 0.5568]；CCDS 为 0.5479，范围 [0.5405, 0.5538]。两边均值只差 0.08 个百分点，单个种子的差别与种子之间的波动同一量级。NSCC 上的新实验以这三个种子为 7B 对照组。报告见 `reports/nscc/`。

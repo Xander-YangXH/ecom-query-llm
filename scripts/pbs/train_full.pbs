@@ -1,5 +1,5 @@
 #!/bin/bash
-# NSCC 上的多卡全参数微调（N3）：一个节点 4 × A100 40GB，DeepSpeed ZeRO-3，torchrun 启动。
+# NSCC 上的 4 卡训练：一个节点 4 × A100 40GB，torchrun 启动。N3 全参数微调（DeepSpeed ZeRO-3，由配置指定）、N5 14B QLoRA 数据并行都用它。
 #   scripts/pbs/submit.sh train_full CONFIG=configs/sft/n3_full_7b.yaml MODEL=Qwen2.5-7B-Instruct RUN=<名字>
 # TRAIN_OVERRIDES="learning_rate=2e-5 seed=43"：追加覆盖配置项（先 export，再在 submit.sh 里只写变量名）。
 # 时限 2 小时以内进 gdev（单个作业最多 4 卡）；更长的用 QSUB_ARGS="-l walltime=..." 覆盖，会进 g3。

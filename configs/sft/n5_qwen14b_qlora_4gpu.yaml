@@ -1,0 +1,49 @@
+# N5：14B QLoRA 在 NSCC 上重跑（DEVLOG S35），作为 14B 的 NSCC 对照组，并用于 6 种子集成。
+# 与 N1（configs/sft/n1_qwen14b_qlora.yaml）和 E2a 的训练设定相同：4bit NF4 + double quantization、LoRA r16/alpha32 全部线性层、
+# 学习率 1e-4、1 个 epoch、全局 batch 32、每 100 步评测、按验证损失选 checkpoint。
+# 只改并行方式：4 × A100 40GB 数据并行（每卡 4 × 累积 2 × 4 卡 = 32），让每个种子在 gdev 的 2 小时内完成。
+# N1 是单卡 RTX 5090、每卡 1 × 累积 32；7B 的 E2a 是单卡 16 × 累积 2。用 scripts/pbs/train_full.pbs 启动（torchrun，4 卡）。
+model_name_or_path: Qwen/Qwen2.5-14B-Instruct
+stage: sft
+do_train: true
+finetuning_type: lora
+quantization_bit: 4
+quantization_method: bnb
+quantization_type: nf4
+double_quantization: true
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: all
+ddp_find_unused_parameters: false
+
+dataset: esci_rel_train
+eval_dataset: esci_rel_val
+template: qwen
+cutoff_len: 384
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+output_dir: saves/n5
+logging_steps: 10
+plot_loss: true
+
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-4
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+bf16: true
+ddp_timeout: 180000000
+
+per_device_eval_batch_size: 8
+eval_strategy: steps
+eval_steps: 100
+save_strategy: steps
+save_steps: 100
+save_total_limit: 2
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+report_to: none

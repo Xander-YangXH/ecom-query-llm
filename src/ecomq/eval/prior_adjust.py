@@ -2,6 +2,8 @@
 
 偏置 b 只在调参集（tune）上搜索，目标是宏 F1 最大；测试集只用于最终报告。
 搜索方法：坐标上升，每轮依次对 substitute/complement/irrelevant 的偏置做一维网格搜索，直到不再变化。
+--n-bag N（S33）：按 query 有放回地重采样调参集 N 次，每次各搜一遍偏置，取平均。调参集只有 88 条 complement，
+  单次搜索选出的 complement 偏置波动很大；平均后更稳。默认 0 = 原来的单次搜索。
 输出：
   --report     JSON：偏置、调参集与测试集上调整前后的指标、与贪心生成结果的一致率、单类召回–精确率曲线
   --preds-out  与 generate 输出同格式的预测文件，可直接交给 ecomq.eval.compare 做 bootstrap 对比
@@ -57,6 +59,19 @@ def tune_bias(L: np.ndarray, gold: np.ndarray, grid=GRID, max_rounds: int = 10) 
     return bias, best
 
 
+def bagged_bias(L: np.ndarray, gold: np.ndarray, groups: np.ndarray, n_bag: int = 50, seed: int = 0,
+                grid=GRID) -> np.ndarray:
+    """按 query（groups）有放回重采样调参集 n_bag 次，每次 tune_bias，返回偏置的平均值（S33）。"""
+    uniq, inv = np.unique(groups, return_inverse=True)
+    rows_by_q = [np.flatnonzero(inv == q) for q in range(len(uniq))]
+    rng = np.random.default_rng(seed)
+    biases = []
+    for _ in range(n_bag):
+        rows = np.concatenate([rows_by_q[q] for q in rng.integers(0, len(uniq), len(uniq))])
+        biases.append(tune_bias(L[rows], gold[rows], grid)[0])
+    return np.mean(biases, axis=0)
+
+
 def class_curve(L, gold, bias, cls: int, grid=GRID) -> list[dict]:
     """固定其余偏置，只改变 cls 的偏置，返回该类的召回与精确率。"""
     out = []
@@ -83,15 +98,20 @@ def main():
     ap.add_argument("--test-scores", required=True)
     ap.add_argument("--gen-preds", help="同一模型贪心生成的预测，用于核对打分实现（无偏置时应基本一致）")
     ap.add_argument("--curve-class", default="irrelevant")
+    ap.add_argument("--n-bag", type=int, default=0, help="S33：>0 时用按 query 重采样调参集后平均的偏置")
     ap.add_argument("--report", required=True)
     ap.add_argument("--preds-out", required=True)
     ap.add_argument("--raw-preds-out", help="同时写出不加偏置（直接取概率最大）的预测，便于 bootstrap 对比调整前后")
     args = ap.parse_args()
 
-    _, Lt, gt = load(args.tune_recs, args.tune_scores)
+    tune_recs, Lt, gt = load(args.tune_recs, args.tune_scores)
     test_recs, Ls, gs = load(args.test_recs, args.test_scores)
     zero = np.zeros(len(RELEVANCE))
-    bias, tune_best = tune_bias(Lt, gt)
+    if args.n_bag > 0:
+        bias = bagged_bias(Lt, gt, np.array([r["group"] for r in tune_recs]), args.n_bag)
+        tune_best = macro_f1(gt, predict(Lt, bias))
+    else:
+        bias, tune_best = tune_bias(Lt, gt)
 
     golds = [{"relevance": RELEVANCE[g]} for g in gs]
     raw_pred, adj_pred = predict(Ls, zero), predict(Ls, bias)

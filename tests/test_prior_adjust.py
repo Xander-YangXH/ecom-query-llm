@@ -1,6 +1,6 @@
 import numpy as np
 
-from ecomq.eval.prior_adjust import class_curve, macro_f1, predict, tune_bias
+from ecomq.eval.prior_adjust import bagged_bias, class_curve, macro_f1, predict, tune_bias
 
 
 def test_macro_f1_matches_hand_computation():
@@ -31,3 +31,18 @@ def test_class_curve_is_monotone_in_recall():
     curve = class_curve(L, gold, np.zeros(4), cls=3)
     recalls = [c["recall"] for c in curve]
     assert all(b >= a for a, b in zip(recalls, recalls[1:]))
+
+
+def test_bagged_bias_is_stable_and_helps_minority():
+    rng = np.random.default_rng(2)
+    n = 3000
+    gold = rng.choice(4, size=n, p=[0.7, 0.2, 0.03, 0.07])
+    groups = np.repeat(np.arange(n // 4), 4)
+    L = rng.normal(0, 1, size=(n, 4))
+    L[np.arange(n), gold] += 1.5
+    L[:, 0] += 2.0
+    b1 = bagged_bias(L, gold, groups, n_bag=8, seed=0)
+    b2 = bagged_bias(L, gold, groups, n_bag=8, seed=0)
+    assert np.allclose(b1, b2)                     # 同一种子可复现
+    assert b1[0] == 0.0 and (b1[1:] > 0).all()
+    assert macro_f1(gold, predict(L, b1)) > macro_f1(gold, predict(L, np.zeros(4))) + 0.05

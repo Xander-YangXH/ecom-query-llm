@@ -54,6 +54,9 @@ CROSS = {
     "all-15": E2A_POOL + GROUPS["N3"] + GROUPS["E10"],
 }
 COMMITTEE = ["e6-rich-s42", "e6-rich-s43", "e6-rich-s44"]
+# S34（--s34）：N3 再加 3 个种子，与 E2a 一样凑成 6 个种子的池子
+S34_MEMBERS = {"n3-45": "n3-full-lr5e-6-s45", "n3-46": "n3-full-lr5e-6-s46", "n3-47": "n3-full-lr5e-6-s47"}
+N3_POOL = ["n3-42", "n3-43", "n3-44", "n3-45", "n3-46", "n3-47"]
 
 
 def per_class_f1(gold, pred):
@@ -66,8 +69,9 @@ def per_class_f1(gold, pred):
 
 
 class Study:
-    def __init__(self, cache: Path, mode: str, n_bag: int = 0):
+    def __init__(self, cache: Path, mode: str, n_bag: int = 0, members: dict | None = None):
         self.mode, self.n_bag = mode, n_bag
+        members = members or MEMBERS
         tune = list(read_jsonl(cache / "recs/tune.jsonl"))
         test = list(read_jsonl(cache / "recs/test.jsonl"))
         self.tune_ids, self.test_ids = [r["id"] for r in tune], [r["id"] for r in test]
@@ -78,7 +82,7 @@ class Study:
         committee = [load_preds(str(cache / f"preds/{c}-raw.jsonl"), self.test_ids) for c in COMMITTEE]
         self.disputed = disputed_mask(self.g_test, committee)
         self.L = {}
-        for name, prefix in MEMBERS.items():
+        for name, prefix in members.items():
             self.L[name] = (self._load(cache / f"scores/{prefix}-tune.jsonl", self.tune_ids),
                             self._load(cache / f"scores/{prefix}-test.jsonl", self.test_ids))
         self.preds = {}
@@ -163,7 +167,10 @@ def main():
     ap.add_argument("--n-bag", type=int, default=0, help="0：单次搜偏置（原协议）；>0：bagged 偏置（S33）")
     ap.add_argument("--n-boot", type=int, default=1000)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--s34", action="store_true", help="S34：只做 E2a 与 N3 两个 6 种子池的比较")
     args = ap.parse_args()
+    if args.s34:
+        return s34(args)
     st = Study(Path(args.cache), args.mode, args.n_bag)
 
     singles = {m: st.evaluate([m]) for m in MEMBERS}
@@ -213,6 +220,43 @@ def main():
     print("== cross-recipe")
     for name, r in report["cross"].items():
         print(f"{name:14s} {fmt(r)}")
+
+
+PATHS = {"full_f1": ("full", "f1"), "clean_f1": ("clean", "f1"), "merged_f1": ("merged", "f1"),
+         "full_acc": ("full", "acc"), "raw_f1": ("raw", "f1"), "complement_ap": ("ranking", "complement_ap"),
+         "irrelevant_ap": ("ranking", "irrelevant_ap"), "exact_vs_sub_auc": ("ranking", "exact_vs_sub_auc")}
+
+
+def s34(args):
+    """预注册（DEVLOG S34）：E2a 与 N3 各 6 个种子，各取全部 20 种 3 种子组合；
+    N3 组合的 full 宏 F1 最小值 > E2a 组合的最大值，才算“N3 集成稳定优于 E2a 集成”。两种偏置选法都报告，主口径是 bagged。"""
+    members = {m: MEMBERS[m] for m in E2A_POOL + N3_POOL[:3]} | S34_MEMBERS
+    st = Study(Path(args.cache), args.mode, args.n_bag, members)
+    singles = {m: st.evaluate([m]) for m in members}
+    report = {"mode": args.mode, "n_bag": args.n_bag, "singles": singles, "pools": {}, "triples": {}}
+    for pool_name, pool in (("E2a", E2A_POOL), ("N3", N3_POOL)):
+        report["pools"][pool_name] = {}
+        for k in (1, 2, 3, 6):
+            combos = list(combinations(pool, k))
+            rows = [singles[c[0]] if k == 1 else st.evaluate(list(c)) for c in combos]
+            report["pools"][pool_name][f"k{k}"] = {n: span(rows, p) for n, p in PATHS.items()}
+            if k == 3:
+                report["pools"][pool_name]["k3_all"] = [
+                    {"members": list(c), **{n: r[p[0]][p[1]] for n, p in PATHS.items()}} for c, r in zip(combos, rows)]
+    for name, triple in (("N3-a", N3_POOL[:3]), ("N3-b", N3_POOL[3:])):
+        st.evaluate(triple)
+        report["triples"][name] = st.paired_bootstrap(triple, args.n_boot, args.seed)
+    e = [r["full_f1"] for r in report["pools"]["E2a"]["k3_all"]]
+    n = [r["full_f1"] for r in report["pools"]["N3"]["k3_all"]]
+    report["criterion"] = {"n3_k3_min": min(n), "e2a_k3_max": max(e), "met": min(n) > max(e),
+                           "n3_k3_beats_e2a_pairs": float(np.mean([a > b for a in n for b in e]))}
+    Path(args.output).write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    for pool_name, v in report["pools"].items():
+        for k in ("k1", "k2", "k3", "k6"):
+            print(pool_name, k, "  ".join(f"{m} {v[k][m]['mean']:.4f} [{v[k][m]['min']:.4f},{v[k][m]['max']:.4f}]"
+                                          for m in ("full_f1", "merged_f1", "clean_f1", "full_acc", "raw_f1")))
+    print("triples (ensemble - member mean):", json.dumps(report["triples"]))
+    print("criterion:", report["criterion"])
 
 
 if __name__ == "__main__":

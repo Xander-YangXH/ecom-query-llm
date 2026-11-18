@@ -34,7 +34,11 @@ eval_steps: 100
 save_strategy: steps
 save_steps: 100
 save_total_limit: 2
-load_best_model_at_end: true
+# 与 E2a 一样按验证损失选 checkpoint，但不在训练末尾由 Trainer 加载：ZeRO-3 加载 checkpoint 时会把优化器状态也载入显存，
+# 4 × 40GB 放不下（S32 试跑在这一步 OOM）。改为每个 checkpoint 只存 bf16 权重，训练后由 train_full.pbs
+# 读 trainer_state.json 的 best_model_checkpoint，链接成 $OUTPUT_ROOT/$RUN/best，打分用它。
+load_best_model_at_end: false
+save_only_model: true
 metric_for_best_model: eval_loss
 greater_is_better: false
 report_to: none

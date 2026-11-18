@@ -3,7 +3,8 @@
 #   scripts/pbs/submit.sh train_full CONFIG=configs/sft/n3_full_7b.yaml MODEL=Qwen2.5-7B-Instruct RUN=<名字>
 # TRAIN_OVERRIDES="learning_rate=2e-5 seed=43"：追加覆盖配置项（先 export，再在 submit.sh 里只写变量名）。
 # 时限 2 小时以内进 gdev（单个作业最多 4 卡）；更长的用 QSUB_ARGS="-l walltime=..." 覆盖，会进 g3。
-# 输出：$OUTPUT_ROOT/$RUN 下是 bf16 的完整模型（打分时用 MODEL_PATH 指向它），checkpoint-* 里有 ZeRO-3 的优化器状态。
+# 输出：$OUTPUT_ROOT/$RUN 是最后一步的 bf16 完整模型，checkpoint-* 只存 bf16 权重（不存优化器状态，不能续训）；
+#       $OUTPUT_ROOT/$RUN/best 链接到验证损失最低的那个，打分时用 MODEL_PATH=$OUTPUT_ROOT/$RUN/best。
 #PBS -N ecomq-trainfull
 #PBS -q normal
 #PBS -l select=1:ncpus=64:ngpus=4:mem=440gb
@@ -22,6 +23,7 @@ GPU_LOGGER=$!
 trap 'kill $GPU_LOGGER 2>/dev/null || true' EXIT
 
 [ -n "${CUDA_HOME:-}" ] && export PATH="$CUDA_HOME/bin:$PATH"   # DeepSpeed 需要时 JIT 编译算子
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True   # 试跑时 ZeRO-3 报过显存碎片导致的缓存清空
 export FORCE_TORCHRUN=1 NNODES=1 NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 export MASTER_ADDR=127.0.0.1 MASTER_PORT=$((29500 + RANDOM % 1000))
 START=$SECONDS
@@ -31,4 +33,23 @@ llamafactory-cli train "$CONFIG" \
   output_dir="$OUTPUT_ROOT/$RUN" \
   ${TRAIN_OVERRIDES:-}
 echo "train: $((SECONDS - START))s"
+
+# 选验证损失最低的 checkpoint（与 E2a 的 load_best_model_at_end 等价），补齐分词器文件，链接成 best
+D="$OUTPUT_ROOT/$RUN"
+BEST=$(python - "$D" <<'PY'
+import json, os, sys
+d = sys.argv[1]
+s = json.load(open(os.path.join(d, "trainer_state.json")))
+for h in s["log_history"]:
+    if "eval_loss" in h:
+        print(f"eval step {h['step']}: eval_loss {h['eval_loss']:.5f}", file=sys.stderr)
+b = s.get("best_model_checkpoint") or d
+print(b if os.path.isdir(b) else d)
+PY
+)
+for f in tokenizer.json tokenizer_config.json vocab.json merges.txt special_tokens_map.json added_tokens.json chat_template.jinja generation_config.json; do
+  [ -e "$BEST/$f" ] || [ ! -e "$D/$f" ] || cp "$D/$f" "$BEST/"
+done
+ln -sfn "$BEST" "$D/best"
+echo "best checkpoint: $BEST"
 du -sh "$OUTPUT_ROOT/$RUN" "$OUTPUT_ROOT/$RUN"/checkpoint-* 2>/dev/null || true

@@ -21,6 +21,6 @@ T=$(scripts/pbs/submit.sh train_full TRAIN_OVERRIDES CONFIG=configs/sft/n3_full_
 echo "train        $T"
 for part in tune test; do
   case $part in tune) F="$DATA_ROOT/esci_tune/splits/tune.jsonl";; test) F="$DATA_ROOT/esci_test2500/splits/test.jsonl";; esac
-  S=$(AFTER=$T scripts/pbs/submit.sh label_scores MODEL_PATH="$OUTPUT_ROOT/$RUN" TEST="$F" NAME="$RUN-$part")
+  S=$(AFTER=$T scripts/pbs/submit.sh label_scores MODEL_PATH="$OUTPUT_ROOT/$RUN/best" TEST="$F" NAME="$RUN-$part")
   echo "score $part   $S"
 done
